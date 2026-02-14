@@ -1,0 +1,76 @@
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import Dashboard from './pages/Dashboard';
+import DailyCheckIn from './pages/DailyCheckIn';
+import Habits from './pages/Habits';
+import AIInsights from './pages/AIInsights';
+import CalendarPage from './pages/CalendarPage';
+import WeeklyReport from './pages/WeeklyReport';
+import Navbar from './components/Navbar';
+
+const ProtectedRoute = ({ children }) => {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+  return children;
+};
+
+function App() {
+  return (
+    <Router>
+      <div className="min-h-screen bg-neutral-900 text-gray-100 font-sans">
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          
+          <Route path="/" element={
+            <ProtectedRoute>
+              <Navbar />
+              <Dashboard />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/check-in" element={
+            <ProtectedRoute>
+              <Navbar />
+              <DailyCheckIn />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/habits" element={
+            <ProtectedRoute>
+              <Navbar />
+              <Habits />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/calendar" element={
+            <ProtectedRoute>
+              <Navbar />
+              <CalendarPage />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/report" element={
+            <ProtectedRoute>
+              <Navbar />
+              <WeeklyReport />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/insights" element={
+            <ProtectedRoute>
+              <Navbar />
+              <AIInsights />
+            </ProtectedRoute>
+          } />
+        </Routes>
+      </div>
+    </Router>
+  );
+}
+
+export default App;
