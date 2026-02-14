@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routes import auth, daily_logs, habits, ai, calendar, life_score, reports
@@ -5,10 +6,8 @@ from app.routes import auth, daily_logs, habits, ai, calendar, life_score, repor
 app = FastAPI(title="LifeOS API", version="1.0.0")
 
 # CORS
-origins = [
-    "http://localhost:5173",
-    "http://localhost:3000",
-]
+cors_origins_str = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000")
+origins = [origin.strip() for origin in cors_origins_str.split(",")]
 
 app.add_middleware(
     CORSMiddleware,
