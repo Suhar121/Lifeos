@@ -21,8 +21,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy project
 COPY . /code/
 
+# Give execution rights on the startup script
+RUN chmod +x /code/start.sh
+
 # Expose port
 EXPOSE 8000
 
 # Command to run the application
-CMD ["gunicorn", "-w", "4", "-k", "uvicorn.workers.UvicornWorker", "app.main:app", "--bind", "0.0.0.0:8000"]
+CMD ["/code/start.sh"]
