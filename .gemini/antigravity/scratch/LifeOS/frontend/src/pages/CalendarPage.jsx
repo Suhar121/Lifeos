@@ -193,39 +193,41 @@ const CalendarPage = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
-      <div className="flex items-start justify-between mb-8">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 sm:mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white">Calendar</h1>
-          <p className="text-gray-400 mt-1">Events, appointments & medicine reminders</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white">Calendar</h1>
+          <p className="text-gray-400 text-xs sm:text-sm mt-0.5 sm:mt-1">Events & medicine reminders</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
           <button onClick={goToToday}
-            className="px-4 py-2 bg-neutral-700 hover:bg-neutral-600 text-white rounded-lg text-sm font-medium transition-colors">
+            className="flex-1 sm:flex-none px-3 py-2 bg-neutral-700 hover:bg-neutral-600 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors">
             Today
           </button>
           <button onClick={() => { setShowEventModal(true); setEventForm(f => ({ ...f, event_date: selectedDate ? `${currentDate.getFullYear()}-${String(currentDate.getMonth()+1).padStart(2,'0')}-${String(selectedDate).padStart(2,'0')}` : new Date().toISOString().split('T')[0] })); }}
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all hover:scale-105">
-            <Plus size={16} /> Event
+            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all">
+            <Plus size={14} /> Event
           </button>
           <button onClick={() => setShowMedModal(true)}
-            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all hover:scale-105">
-            <Pill size={16} /> Medicine
+            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all">
+            <Pill size={14} /> Med
           </button>
         </div>
       </div>
 
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Calendar Grid */}
-        <div className="lg:col-span-2 bg-neutral-800/50 rounded-2xl p-6 border border-neutral-700/50">
-          <div className="flex items-center justify-between mb-6">
-            <button onClick={prevMonth} className="p-2 hover:bg-neutral-700 rounded-lg transition-colors">
-              <ChevronLeft size={20} className="text-gray-400" />
+        <div className="lg:col-span-2 bg-neutral-800/50 rounded-2xl p-4 sm:p-6 border border-neutral-700/50">
+          <div className="flex items-center justify-between mb-4 sm:mb-6">
+            <button onClick={prevMonth} className="p-1.5 sm:p-2 hover:bg-neutral-700 rounded-lg transition-colors">
+              <ChevronLeft size={18} className="text-gray-400" />
             </button>
-            <h2 className="text-xl font-semibold text-white">{monthName}</h2>
-            <button onClick={nextMonth} className="p-2 hover:bg-neutral-700 rounded-lg transition-colors">
-              <ChevronRight size={20} className="text-gray-400" />
+            <h2 className="text-lg sm:text-xl font-semibold text-white">{monthName}</h2>
+            <button onClick={nextMonth} className="p-1.5 sm:p-2 hover:bg-neutral-700 rounded-lg transition-colors">
+              <ChevronRight size={18} className="text-gray-400" />
             </button>
           </div>
+
 
           {/* Day headers */}
           <div className="grid grid-cols-7 gap-1 mb-2">
@@ -462,14 +464,15 @@ const CalendarPage = () => {
 
       {/* Event Modal */}
       {showEventModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-neutral-800 rounded-2xl p-8 w-full max-w-md border border-neutral-700 shadow-2xl">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-neutral-800 rounded-2xl p-6 sm:p-8 w-full max-w-md border border-neutral-700 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-white">New Event</h2>
-              <button onClick={() => setShowEventModal(false)} className="text-gray-400 hover:text-white">
+              <button onClick={() => setShowEventModal(false)} className="text-gray-400 hover:text-white p-2">
                 <X size={20} />
               </button>
             </div>
+
             <form onSubmit={handleCreateEvent} className="space-y-4">
               <div>
                 <label className="text-xs text-gray-400 block mb-1.5">Title</label>
@@ -546,14 +549,15 @@ const CalendarPage = () => {
 
       {/* Medicine Modal */}
       {showMedModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-neutral-800 rounded-2xl p-8 w-full max-w-md border border-neutral-700 shadow-2xl">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-neutral-800 rounded-2xl p-6 sm:p-8 w-full max-w-md border border-neutral-700 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-white">Add Medicine</h2>
-              <button onClick={() => setShowMedModal(false)} className="text-gray-400 hover:text-white">
+              <button onClick={() => setShowMedModal(false)} className="text-gray-400 hover:text-white p-2">
                 <X size={20} />
               </button>
             </div>
+
             <form onSubmit={handleCreateMedicine} className="space-y-4">
               <div>
                 <label className="text-xs text-gray-400 block mb-1.5">Medicine Name</label>

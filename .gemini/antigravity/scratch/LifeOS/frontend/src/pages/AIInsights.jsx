@@ -33,31 +33,33 @@ const AIInsights = () => {
     const styles = colorStyles[color] || colorStyles.blue;
     
     return (
-      <div className="bg-neutral-800 rounded-xl p-6 border border-neutral-700 shadow-lg relative overflow-hidden">
-        <div className={`absolute top-0 right-0 p-4 opacity-10 ${styles.icon}`}>
-          <Icon size={100} />
+      <div className="bg-neutral-800 rounded-xl p-4 sm:p-6 border border-neutral-700 shadow-lg relative overflow-hidden">
+        <div className={`absolute top-0 right-0 p-2 sm:p-4 opacity-10 ${styles.icon}`}>
+          <Icon size={80} className="sm:size-[100px]" />
         </div>
-        <div className="flex items-center gap-3 mb-4">
-          <div className={`p-2 rounded-lg ${styles.bg}`}>
-            <Icon size={24} />
+        <div className="flex items-center gap-3 mb-3 sm:mb-4">
+          <div className={`p-1.5 sm:p-2 rounded-lg ${styles.bg}`}>
+            <Icon size={20} className="sm:size-[24px]" />
           </div>
-          <h3 className="text-lg font-semibold text-white">{title}</h3>
+          <h3 className="text-base sm:text-lg font-semibold text-white">{title}</h3>
         </div>
-        <p className="text-gray-300 leading-relaxed relative z-10">{content}</p>
+        <p className="text-sm sm:text-base text-gray-300 leading-relaxed relative z-10">{content}</p>
       </div>
+
     );
   };
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-      <div className="flex justify-between items-end mb-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-6 sm:mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-            <Sparkles className="text-yellow-400" />
-            AI Performance Analysis
+          <h1 className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-2 sm:gap-3">
+            <Sparkles className="text-yellow-400" size={24} />
+            AI Insights
           </h1>
-          <p className="text-gray-400 mt-1">Deep insights based on your recent activity</p>
+          <p className="text-gray-400 text-xs sm:text-sm mt-0.5 sm:mt-1">Deep analysis of your data patterns</p>
         </div>
+
         <button
           onClick={fetchAnalysis}
           disabled={loading}
@@ -96,12 +98,13 @@ const AIInsights = () => {
              icon={Lightbulb} 
              color="yellow" 
           />
-          <div className="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-xl p-8 border border-neutral-700 shadow-lg md:col-span-2 text-center">
-             <h3 className="text-xl font-bold text-white mb-2">Motivational Insight</h3>
-             <blockquote className="text-indigo-100 text-lg italic">
+          <div className="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-xl p-6 sm:p-8 border border-neutral-700 shadow-lg md:col-span-2 text-center">
+             <h3 className="text-lg sm:text-xl font-bold text-white mb-2">Motivational Insight</h3>
+             <blockquote className="text-indigo-100 text-base sm:text-lg italic">
                "{analysis.motivational_insight}"
              </blockquote>
           </div>
+
         </div>
       ) : (
         <div className="text-center py-20 text-gray-500">

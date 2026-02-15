@@ -1,12 +1,21 @@
-import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
+import os
+
+# Load environment variables early
+load_dotenv()
+
 from app.routes import auth, daily_logs, habits, ai, calendar, life_score, reports
 
 app = FastAPI(title="LifeOS API", version="1.0.0")
 
 # CORS
-cors_origins_str = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000")
+cors_origins_str = os.getenv(
+    "CORS_ORIGINS",
+    "http://localhost:5173,http://localhost:3000,http://192.168.31.33:5173,http://4.240.99.32:5173"
+)
+
 origins = [origin.strip() for origin in cors_origins_str.split(",")]
 
 app.add_middleware(

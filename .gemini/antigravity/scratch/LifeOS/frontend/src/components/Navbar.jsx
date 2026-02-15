@@ -33,18 +33,19 @@ const Navbar = () => {
     return (
       <Link
         to={to}
-        className={`flex flex-col items-center justify-center space-y-1.5 px-4 py-1 transition-all relative ${
-          isActive ? 'text-indigo-400 font-semibold scale-110' : 'text-gray-500 hover:text-white'
+        className={`flex flex-col items-center justify-center space-y-1 px-3 py-1 transition-all relative ${
+          isActive ? 'text-indigo-400 font-semibold scale-105' : 'text-gray-500 hover:text-white'
         }`}
       >
-        <Icon size={22} strokeWidth={isActive ? 2.5 : 2} />
-        <span className="text-[10px] uppercase tracking-wider font-bold">{label}</span>
+        <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
+        <span className="text-[9px] uppercase tracking-wider font-bold">{label}</span>
         {isActive && (
-          <div className="absolute -top-1 w-1 h-1 bg-indigo-500 rounded-full shadow-[0_0_8px_rgba(99,102,241,0.8)]" />
+          <div className="absolute -top-1.5 w-1 h-1 bg-indigo-500 rounded-full shadow-[0_0_8px_rgba(99,102,241,0.8)]" />
         )}
       </Link>
     );
   };
+
 
   return (
     <>
@@ -84,8 +85,8 @@ const Navbar = () => {
       </nav>
 
       {/* Bottom Navigation for Mobile */}
-      <div className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-md z-50">
-        <div className="bg-neutral-900/80 backdrop-blur-xl border border-neutral-700/50 rounded-2xl px-2 py-3 shadow-2xl shadow-black/50 flex items-center justify-around">
+      <div className="md:hidden fixed bottom-[max(1rem,env(safe-area-inset-bottom,1rem))] left-1/2 -translate-x-1/2 w-[92%] max-w-sm z-50">
+        <div className="bg-neutral-900/90 backdrop-blur-xl border border-neutral-800/50 rounded-2xl px-1 py-1.5 shadow-2xl shadow-black/50 flex items-center justify-around">
           <MobileNavItem to="/" icon={BarChart2} label="Dash" />
           <MobileNavItem to="/check-in" icon={PlusCircle} label="Log" />
           <MobileNavItem to="/habits" icon={CheckSquare} label="Habits" />
@@ -93,6 +94,7 @@ const Navbar = () => {
           <MobileNavItem to="/report" icon={FileBarChart} label="Report" />
         </div>
       </div>
+
     </>
   );
 };

@@ -72,26 +72,32 @@ const Dashboard = () => {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Missed Log Banner */}
       {!hasLogToday && (
-        <div className="mb-6 bg-amber-900/30 border border-amber-700/50 rounded-xl p-4 flex items-center gap-3">
-          <AlertCircle size={20} className="text-amber-400 shrink-0" />
-          <div>
-            <p className="text-amber-200 text-sm font-medium">You haven't logged today yet!</p>
-            <p className="text-amber-400/70 text-xs">Keep your streak alive — log your day now.</p>
+        <div className="mb-6 bg-amber-900/30 border border-amber-700/50 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+          <div className="flex items-center gap-3">
+            <AlertCircle size={20} className="text-amber-400 shrink-0" />
+            <div>
+              <p className="text-amber-200 text-sm font-medium">You haven't logged today yet!</p>
+              <p className="text-amber-400/70 text-xs">Keep your streak alive — log your day now.</p>
+            </div>
           </div>
-          <a href="/check-in" className="ml-auto bg-amber-600 hover:bg-amber-700 text-white text-xs font-medium px-4 py-2 rounded-lg transition-colors whitespace-nowrap">
+          <a href="/check-in" className="w-full sm:w-auto text-center bg-amber-600 hover:bg-amber-700 text-white text-xs font-medium px-6 py-2.5 rounded-lg transition-colors whitespace-nowrap">
             Log Now
           </a>
         </div>
       )}
 
+
       {/* Header with Life Score Hero */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         {/* Life Score Card */}
-        <div className="bg-gradient-to-br from-indigo-900/30 to-purple-900/20 rounded-2xl p-8 border border-indigo-800/30 flex flex-col items-center justify-center">
-          <h2 className="text-sm font-medium text-gray-400 uppercase tracking-widest mb-4">Life Score</h2>
-          <LifeScoreCircle score={lifeScore?.average_score || 0} />
-          <p className="text-gray-500 text-xs mt-4">Weekly Average</p>
+        <div className="bg-gradient-to-br from-indigo-900/30 to-purple-900/20 rounded-2xl p-6 sm:p-8 border border-indigo-800/30 flex flex-col items-center justify-center">
+          <h2 className="text-xs sm:text-sm font-medium text-gray-400 uppercase tracking-widest mb-4">Life Score</h2>
+          <div className="scale-90 sm:scale-100">
+            <LifeScoreCircle score={lifeScore?.average_score || 0} />
+          </div>
+          <p className="text-gray-500 text-[10px] sm:text-xs mt-4">Weekly Average</p>
         </div>
+
 
         {/* Quick Stats */}
         <div className="lg:col-span-2 grid grid-cols-2 gap-4">

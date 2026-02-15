@@ -136,35 +136,36 @@ const Habits = () => {
   const todayName = new Date().toLocaleDateString(undefined, { weekday: 'long' });
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
       {/* Header */}
-      <div className="flex items-start justify-between mb-8">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-8 gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-white">Habits</h1>
-          <p className="text-gray-400 mt-1">Build consistency, one day at a time</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white">Habits</h1>
+          <p className="text-gray-400 text-xs sm:text-sm mt-0.5 sm:mt-1">Build consistency, one day at a time</p>
         </div>
         <button
           onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl transition-all hover:scale-105 text-sm font-medium shadow-lg shadow-indigo-600/20"
+          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl transition-all hover:scale-105 text-sm font-medium shadow-lg shadow-indigo-600/20"
         >
-          <Plus size={18} /> New Habit
+          <Plus size={16} className="sm:w-[18px] sm:h-[18px]" /> New Habit
         </button>
       </div>
 
+
       {/* Today's Progress Bar */}
       {totalHabits > 0 && (
-        <div className="bg-neutral-800/50 rounded-2xl p-6 border border-neutral-700/50 mb-8">
-          <div className="flex items-center justify-between mb-3">
+        <div className="bg-neutral-800/50 rounded-2xl p-4 sm:p-6 border border-neutral-700/50 mb-6">
+          <div className="flex items-center justify-between mb-2">
             <div>
-              <h3 className="text-white font-semibold">{todayName}'s Progress</h3>
-              <p className="text-gray-500 text-xs mt-0.5">{totalToday} of {totalHabits} habits done</p>
+              <h3 className="text-white text-sm sm:text-base font-semibold">{todayName}'s Progress</h3>
+              <p className="text-gray-500 text-[10px] mt-0.5">{totalToday} of {totalHabits} habits done</p>
             </div>
             <div className="text-right">
-              <span className="text-2xl font-bold text-white">{completionPercent}%</span>
-              {completionPercent === 100 && <span className="block text-xs text-green-400 mt-0.5">🎉 Perfect day!</span>}
+              <span className="text-xl sm:text-2xl font-bold text-white">{completionPercent}%</span>
+              {completionPercent === 100 && <span className="block text-[10px] text-green-400 mt-0.5">🎉 Perfect day!</span>}
             </div>
           </div>
-          <div className="h-3 bg-neutral-700 rounded-full overflow-hidden">
+          <div className="h-2 sm:h-3 bg-neutral-700 rounded-full overflow-hidden">
             <div
               className={`h-full rounded-full transition-all duration-700 ease-out ${
                 completionPercent === 100 
@@ -177,8 +178,10 @@ const Habits = () => {
         </div>
       )}
 
+
       {/* Category Filter Chips */}
-      <div className="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
+      <div className="flex gap-2 mb-6 overflow-x-auto pb-3 snap-x scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
+
         <button
           onClick={() => setActiveFilter('all')}
           className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap ${
@@ -222,20 +225,22 @@ const Habits = () => {
                   habit.completed_today 
                     ? 'border-green-800/30 bg-green-900/10' 
                     : 'border-neutral-700/50 hover:border-neutral-600'
-                } ${isCompleting ? 'scale-[1.02]' : ''}`}
+                } ${isCompleting ? 'scale-[1.01]' : ''}`}
               >
-                <div className="flex items-center gap-4 p-4">
+                <div className="flex items-center gap-2.5 sm:gap-4 p-2.5 sm:p-4">
                   {/* Complete Button */}
                   <button
                     onClick={() => toggleHabit(habit)}
-                    className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl transition-all duration-300 shrink-0 ${
+
+                    className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center text-xl sm:text-2xl transition-all duration-300 shrink-0 ${
                       habit.completed_today
-                        ? 'bg-green-500/20 ring-2 ring-green-500 scale-110'
+                        ? 'bg-green-500/20 ring-2 ring-green-500 scale-105 sm:scale-110'
                         : 'bg-neutral-700/50 hover:bg-neutral-700 hover:scale-110'
                     }`}
                   >
                     {habit.completed_today ? '✓' : habit.emoji}
                   </button>
+
 
                   {/* Info */}
                   <div className="flex-1 min-w-0">
@@ -251,11 +256,11 @@ const Habits = () => {
                     </div>
 
                     {/* Week Dots */}
-                    <div className="flex items-center gap-1.5 mt-2">
+                    <div className="flex items-center gap-1 mt-1.5 sm:mt-2">
                       {DAY_LABELS.map((day, i) => (
                         <div key={i} className="flex flex-col items-center gap-0.5">
                           <div
-                            className={`w-5 h-5 rounded-md transition-all ${
+                            className={`w-4 h-4 sm:w-5 sm:h-5 rounded-[4px] sm:rounded-md transition-all ${
                               habit.week_completions[i]
                                 ? 'bg-green-500 shadow-sm shadow-green-500/30'
                                 : i === 6 // today
@@ -263,10 +268,11 @@ const Habits = () => {
                                   : 'bg-neutral-700/50'
                             }`}
                           />
-                          <span className="text-[9px] text-gray-600">{day}</span>
+                          <span className="text-[8px] sm:text-[9px] text-gray-600">{day}</span>
                         </div>
                       ))}
                     </div>
+
                   </div>
 
                   {/* Streak */}

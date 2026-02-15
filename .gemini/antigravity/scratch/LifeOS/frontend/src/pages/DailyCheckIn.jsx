@@ -150,7 +150,8 @@ const DailyCheckIn = () => {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8">
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+
       {/* Progress Bar */}
       <div className="mb-8">
         <div className="flex justify-between items-center mb-3">
@@ -166,38 +167,40 @@ const DailyCheckIn = () => {
       </div>
 
       {/* Step Header */}
-      <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-white mb-2">{STEP_TITLES[currentStep]}</h1>
-        <p className="text-gray-400">{STEP_SUBTITLES[currentStep]}</p>
+      <div className="text-center mb-6 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2 leading-tight">{STEP_TITLES[currentStep]}</h1>
+        <p className="text-gray-400 text-sm sm:text-base">{STEP_SUBTITLES[currentStep]}</p>
       </div>
+
 
       {/* Step Content */}
       <div className="bg-neutral-800/50 backdrop-blur rounded-2xl p-8 border border-neutral-700/50 shadow-2xl min-h-[300px] flex flex-col justify-center">
         
         {/* MOOD STEP */}
         {currentStep === 'mood' && (
-          <div className="grid grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-5 gap-3 sm:gap-4">
             {MOOD_CONFIG.map((m) => (
               <button
                 key={m.value}
                 type="button"
                 onClick={() => { setFormData({ ...formData, mood: m.value }); }}
-                className={`flex flex-col items-center p-4 rounded-2xl transition-all duration-300 ${
+                className={`flex flex-col items-center p-3 sm:p-4 rounded-xl sm:rounded-2xl transition-all duration-300 ${
                   formData.mood === m.value
-                    ? `${m.bg} ring-2 ${m.ring} scale-110 shadow-lg`
-                    : 'bg-neutral-700/30 hover:bg-neutral-700/60 hover:scale-105'
+                    ? `${m.bg} ring-2 ${m.ring} scale-105 shadow-lg`
+                    : 'bg-neutral-700/30 hover:bg-neutral-700/60'
                 }`}
               >
-                <span className="text-4xl mb-2" style={{ filter: formData.mood === m.value ? 'none' : 'grayscale(0.5)' }}>
+                <span className="text-3xl sm:text-4xl mb-2" style={{ filter: formData.mood === m.value ? 'none' : 'grayscale(0.5)' }}>
                   {m.emoji}
                 </span>
-                <span className={`text-xs font-medium ${formData.mood === m.value ? 'text-white' : 'text-gray-500'}`}>
+                <span className={`text-[10px] sm:text-xs font-medium ${formData.mood === m.value ? 'text-white' : 'text-gray-500'}`}>
                   {m.label}
                 </span>
               </button>
             ))}
           </div>
         )}
+
 
         {/* ENERGY STEP */}
         {currentStep === 'energy' && (
@@ -366,28 +369,28 @@ const DailyCheckIn = () => {
       </div>
 
       {/* Navigation Buttons */}
-      <div className="flex items-center justify-between mt-8">
+      <div className="flex items-center justify-between mt-6 sm:mt-8 gap-3">
         <button
           type="button"
           onClick={handleBack}
           disabled={step === 0}
-          className={`px-6 py-3 rounded-xl font-medium transition-all ${
+          className={`flex-1 sm:flex-none text-center px-4 sm:px-6 py-3 rounded-xl font-medium transition-all ${
             step === 0
-              ? 'text-gray-600 cursor-not-allowed'
+              ? 'text-transparent'
               : 'text-gray-300 hover:text-white hover:bg-neutral-800'
           }`}
         >
-          ← Back
+          {step === 0 ? '' : '← Back'}
         </button>
 
         {/* Step Dots */}
-        <div className="flex gap-1.5">
+        <div className="hidden xs:flex gap-1.5 mx-2">
           {STEPS.map((_, i) => (
             <button
               key={i}
               onClick={() => setStep(i)}
-              className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                i === step ? 'bg-indigo-500 w-6' : i < step ? 'bg-indigo-500/50' : 'bg-neutral-700'
+              className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
+                i === step ? 'bg-indigo-500 w-4' : i < step ? 'bg-indigo-500/50' : 'bg-neutral-700'
               }`}
             />
           ))}
@@ -397,7 +400,7 @@ const DailyCheckIn = () => {
           <button
             type="button"
             onClick={handleNext}
-            className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold py-3 px-8 rounded-xl shadow-lg transition-all hover:scale-105 hover:shadow-indigo-500/25"
+            className="flex-1 sm:flex-none bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold py-3 px-6 sm:px-8 rounded-xl shadow-lg transition-all active:scale-95"
           >
             Next →
           </button>
@@ -405,12 +408,13 @@ const DailyCheckIn = () => {
           <button
             type="button"
             onClick={handleSubmit}
-            className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white font-bold py-3 px-8 rounded-xl shadow-lg transition-all hover:scale-105 hover:shadow-green-500/25"
+            className="flex-1 sm:flex-none bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white font-bold py-3 px-6 sm:px-8 rounded-xl shadow-lg transition-all active:scale-95"
           >
-            Save Log 🎉
+            Save 🎉
           </button>
         )}
       </div>
+
 
       {/* Motivational Quote */}
       <div className="text-center mt-10">

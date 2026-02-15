@@ -21,7 +21,7 @@ const ProtectedRoute = ({ children }) => {
 function App() {
   return (
     <Router>
-      <div className="min-h-screen bg-neutral-900 text-gray-100 font-sans">
+      <div className="min-h-screen bg-neutral-900 text-gray-100 font-sans pb-32 md:pb-0">
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
