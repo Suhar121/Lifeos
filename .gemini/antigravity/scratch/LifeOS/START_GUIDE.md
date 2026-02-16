@@ -1,11 +1,30 @@
 # LifeOS Startup Guide
 
+## 🆕 Key Features (2026)
+
+- **Health Vitals Page**: Track weight, blood pressure, blood sugar, and heart rate (see "Vitals" in navbar)
+- **Junk Food Tracking**: New step in daily check-in wizard
+- **Calendar Day Info**: Click any date to see vitals, mood, and medicine status
+- **Edit Buttons**: Edit events and medicines directly from the calendar
+- **Session Expiry Handling**: Auto-redirect to login with a session expired banner
+- **Notification Sound**: Browser notifications now play a sound
+- **Cloudflare Tunnel**: Secure public access via lifebuddy.dpdns.org
+- **One-Click Scripts**: `start-all.sh`, `stop-all.sh`, `status.sh` for easy management
+- **SPA Production Server**: `serve-spa.py` for correct frontend routing
+
+---
+
 ## 🚀 Quick Start (All Services)
 
 To start **everything** at once, run:
 ```bash
 ./start-all.sh
 ```
+
+This will:
+- Start backend (FastAPI, port 8000)
+- Start frontend (production build, port 5173)
+- Start Cloudflare Tunnel (if configured)
 
 ---
 
@@ -19,6 +38,10 @@ cd /home/suhar/Lifeos/.gemini/antigravity/scratch/LifeOS
 source app/vevn/bin/activate
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
+
+**Health Vitals API:**
+- `GET /daily-logs/by-date/{date}` — Get daily log (including vitals) for a date
+- `PUT /daily-logs/{id}` — Update daily log (vitals, junk food, etc)
 
 **To run in background:**
 ```bash
@@ -42,6 +65,11 @@ curl http://localhost:8000/docs
 cd /home/suhar/Lifeos/.gemini/antigravity/scratch/LifeOS
 nohup python3 serve-spa.py > frontend-server.log 2>&1 &
 ```
+
+**Pages:**
+- `/health` — Health Vitals page
+- `/check-in` — Daily check-in (now includes junk food step)
+- `/calendar` — Calendar with Day Info tab (vitals, mood, medicine)
 
 #### Option B: Development (with hot reload)
 ```bash
@@ -167,15 +195,13 @@ npm run build
 
 ---
 
-## ⚡ Quick Commands Reference
+## 🆕 Feature Highlights
 
-| Task | Command |
-|------|---------|
-| Start backend | `cd /home/suhar/Lifeos/.gemini/antigravity/scratch/LifeOS && source app/vevn/bin/activate && uvicorn app.main:app --host 0.0.0.0 --port 8000` |
-| Start frontend | `cd /home/suhar/Lifeos/.gemini/antigravity/scratch/LifeOS && python3 serve-spa.py` |
-| Start tunnel | `cd /home/suhar/Lifeos/.gemini/antigravity/scratch/LifeOS && ./start-tunnel.sh` |
-| Check all services | `ps aux \| grep -E "uvicorn\|serve-spa\|cloudflared" \| grep -v grep` |
-| View backend logs | `tail -f /home/suhar/Lifeos/.gemini/antigravity/scratch/LifeOS/app/backend.log` |
-| View frontend logs | `tail -f /home/suhar/Lifeos/.gemini/antigravity/scratch/LifeOS/frontend-server.log` |
-| Rebuild frontend | `cd frontend && npm run build` |
-| Stop everything | `pkill -f "uvicorn\|serve-spa\|cloudflared"` |
+- **Health Vitals**: Enter and view weight, BP, sugar, heart rate on the Health page or via calendar Day Info
+- **Junk Food Tracking**: Step in daily check-in wizard
+- **Edit Events/Medicines**: Pencil icon in calendar
+- **Session Expiry**: Auto-redirect to login with banner
+- **Notification Sound**: For reminders
+- **Cloudflare Tunnel**: Public access via lifebuddy.dpdns.org
+- **Scripts**: `start-all.sh`, `stop-all.sh`, `status.sh` for easy management
+- **SPA Server**: `serve-spa.py` for correct frontend routing
