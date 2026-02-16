@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
-const STEPS = ['mood', 'energy', 'focus', 'productivity', 'sleep', 'workout', 'notes'];
+const STEPS = ['mood', 'energy', 'focus', 'productivity', 'sleep', 'workout', 'junkfood', 'notes'];
 
 const STEP_TITLES = {
   mood: "How's your vibe today?",
@@ -11,6 +11,7 @@ const STEP_TITLES = {
   productivity: "Did you get things done? 🚀",
   sleep: "How was your sleep? 🌙",
   workout: "Did you move your body? 💪",
+  junkfood: "Did you eat junk food today? 🍔",
   notes: "Any final thoughts? ✍️",
 };
 
@@ -21,6 +22,7 @@ const STEP_SUBTITLES = {
   productivity: "Rate how productive your day was",
   sleep: "Slide to set your sleep hours",
   workout: "Every step counts!",
+  junkfood: "Be honest — no judgment! Tracking helps awareness",
   notes: "Jot down wins, thoughts, or reflections",
 };
 
@@ -59,6 +61,7 @@ const DailyCheckIn = () => {
     sleep_hours: 7,
     productivity: 5,
     workout: false,
+    junk_food: false,
     notes: ''
   });
 
@@ -339,6 +342,50 @@ const DailyCheckIn = () => {
             </div>
             {formData.workout && (
               <p className="text-green-400 text-sm animate-pulse">🔥 Gains incoming!</p>
+            )}
+          </div>
+        )}
+
+        {/* JUNK FOOD STEP */}
+        {currentStep === 'junkfood' && (
+          <div className="flex flex-col items-center space-y-8">
+            <div className="flex gap-6">
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, junk_food: true })}
+                className={`flex flex-col items-center p-8 rounded-2xl transition-all duration-300 min-w-[140px] ${
+                  formData.junk_food
+                    ? 'bg-red-500/15 ring-2 ring-red-500 scale-110 shadow-lg shadow-red-500/10'
+                    : 'bg-neutral-700/30 hover:bg-neutral-700/60 hover:scale-105'
+                }`}
+              >
+                <span className="text-5xl mb-3">🍔</span>
+                <span className={`font-bold text-lg ${formData.junk_food ? 'text-red-400' : 'text-gray-400'}`}>
+                  Yeah...
+                </span>
+                <span className="text-xs text-gray-500 mt-1">Had some junk</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, junk_food: false })}
+                className={`flex flex-col items-center p-8 rounded-2xl transition-all duration-300 min-w-[140px] ${
+                  !formData.junk_food
+                    ? 'bg-green-500/15 ring-2 ring-green-500 scale-110 shadow-lg shadow-green-500/10'
+                    : 'bg-neutral-700/30 hover:bg-neutral-700/60 hover:scale-105'
+                }`}
+              >
+                <span className="text-5xl mb-3">🥗</span>
+                <span className={`font-bold text-lg ${!formData.junk_food ? 'text-green-400' : 'text-gray-400'}`}>
+                  Nope!
+                </span>
+                <span className="text-xs text-gray-500 mt-1">Ate clean</span>
+              </button>
+            </div>
+            {formData.junk_food ? (
+              <p className="text-amber-400 text-sm">🙈 It's okay! Awareness is the first step</p>
+            ) : (
+              <p className="text-green-400 text-sm animate-pulse">🥗 Clean eating champion!</p>
             )}
           </div>
         )}

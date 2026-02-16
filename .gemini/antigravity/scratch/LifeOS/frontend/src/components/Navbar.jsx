@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Activity, BarChart2, CheckSquare, Sparkles, LogOut, PlusCircle, Calendar, FileBarChart } from 'lucide-react';
+import { Activity, BarChart2, CheckSquare, Sparkles, LogOut, PlusCircle, Calendar, FileBarChart, HeartPulse } from 'lucide-react';
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -64,7 +64,8 @@ const Navbar = () => {
             
             <div className="hidden md:flex items-center space-x-1">
               <NavItem to="/" icon={BarChart2} label="Dashboard" />
-              <NavItem to="/check-in" icon={PlusCircle} label="Daily Log" />
+              <NavItem to="/check-in" icon={PlusCircle} label="Check-In" />
+              <NavItem to="/health" icon={HeartPulse} label="Vitals" />
               <NavItem to="/habits" icon={CheckSquare} label="Habits" />
               <NavItem to="/calendar" icon={Calendar} label="Calendar" />
               <NavItem to="/report" icon={FileBarChart} label="Report" />
@@ -89,6 +90,7 @@ const Navbar = () => {
         <div className="bg-neutral-900/90 backdrop-blur-xl border border-neutral-800/50 rounded-2xl px-1 py-1.5 shadow-2xl shadow-black/50 flex items-center justify-around">
           <MobileNavItem to="/" icon={BarChart2} label="Dash" />
           <MobileNavItem to="/check-in" icon={PlusCircle} label="Log" />
+          <MobileNavItem to="/health" icon={HeartPulse} label="Vitals" />
           <MobileNavItem to="/habits" icon={CheckSquare} label="Habits" />
           <MobileNavItem to="/calendar" icon={Calendar} label="Cal" />
           <MobileNavItem to="/report" icon={FileBarChart} label="Report" />

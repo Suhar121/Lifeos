@@ -13,7 +13,7 @@ app = FastAPI(title="LifeOS API", version="1.0.0")
 # CORS
 cors_origins_str = os.getenv(
     "CORS_ORIGINS",
-    "http://localhost:5173,http://localhost:3000,http://192.168.31.33:5173,http://4.240.99.32:5173"
+    "http://localhost:5173,http://localhost:3000,http://192.168.31.33:5173,http://4.240.99.32:5173,https://lifebuddy.dpdns.org"
 )
 
 origins = [origin.strip() for origin in cors_origins_str.split(",")]

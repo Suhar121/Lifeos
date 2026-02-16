@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../services/api';
 import { Activity } from 'lucide-react';
@@ -7,7 +7,16 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [sessionExpired, setSessionExpired] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const expired = localStorage.getItem('sessionExpired');
+    if (expired === 'true') {
+      setSessionExpired(true);
+      localStorage.removeItem('sessionExpired');
+    }
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -32,6 +41,12 @@ const Login = () => {
           <h2 className="text-3xl font-bold text-center text-white mb-2">Welcome Back</h2>
           <p className="text-center text-gray-400 mb-8">Sign in to continue your optimization journey</p>
           
+          {sessionExpired && (
+            <div className="bg-amber-500/10 border border-amber-500/50 text-amber-400 px-4 py-3 rounded-lg mb-6 text-sm flex items-center gap-2">
+              <span>⏰</span> Your session has expired. Please log in again.
+            </div>
+          )}
+
           {error && (
             <div className="bg-red-500/10 border border-red-500/50 text-red-400 px-4 py-3 rounded-lg mb-6 text-sm">
               {error}

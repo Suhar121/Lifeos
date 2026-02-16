@@ -18,4 +18,22 @@ api.interceptors.request.use(
   }
 );
 
+// Add a response interceptor to handle expired sessions
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      const currentPath = window.location.pathname;
+      // Don't redirect if already on login/register page
+      if (currentPath !== '/login' && currentPath !== '/register') {
+        localStorage.removeItem('token');
+        // Store a flag so the login page can show "session expired"
+        localStorage.setItem('sessionExpired', 'true');
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default api;

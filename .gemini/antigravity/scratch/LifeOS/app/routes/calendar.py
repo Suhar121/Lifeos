@@ -102,6 +102,26 @@ def delete_event(
     db.commit()
     return {"detail": "Event deleted"}
 
+@router.put("/events/{event_id}", response_model=EventOut)
+def update_event(
+    event_id: str,
+    event_data: EventCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    event = db.query(Event).filter(Event.id == event_id, Event.user_id == current_user.id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    event.title = event_data.title
+    event.description = event_data.description
+    event.event_type = event_data.event_type
+    event.event_date = event_data.event_date
+    event.event_time = event_data.event_time
+    event.color = event_data.color
+    db.commit()
+    db.refresh(event)
+    return event
+
 # --- Medicine Routes ---
 
 @router.post("/medicines", response_model=MedicineOut)
@@ -176,6 +196,61 @@ def delete_medicine(
     db.delete(med)
     db.commit()
     return {"detail": "Medicine deleted"}
+
+@router.put("/medicines/{med_id}", response_model=MedicineOut)
+def update_medicine(
+    med_id: str,
+    med_data: MedicineCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    med = db.query(Medicine).filter(Medicine.id == med_id, Medicine.user_id == current_user.id).first()
+    if not med:
+        raise HTTPException(status_code=404, detail="Medicine not found")
+    med.name = med_data.name
+    med.dosage = med_data.dosage
+    med.frequency = med_data.frequency
+    med.reminder_time = med_data.reminder_time
+    db.commit()
+    db.refresh(med)
+    today = date.today()
+    taken_log = db.query(MedicineLog).filter(
+        MedicineLog.medicine_id == med.id,
+        MedicineLog.date == today,
+        MedicineLog.taken == True
+    ).first()
+    return {
+        "id": med.id,
+        "name": med.name,
+        "dosage": med.dosage,
+        "frequency": med.frequency,
+        "reminder_time": med.reminder_time,
+        "created_at": med.created_at,
+        "taken_today": bool(taken_log)
+    }
+
+@router.get("/medicines/logs-by-date/{log_date}")
+def get_medicine_logs_by_date(
+    log_date: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    target = datetime.strptime(log_date, "%Y-%m-%d").date()
+    user_meds = db.query(Medicine).filter(Medicine.user_id == current_user.id).all()
+    result = []
+    for med in user_meds:
+        log = db.query(MedicineLog).filter(
+            MedicineLog.medicine_id == med.id,
+            MedicineLog.date == target,
+            MedicineLog.taken == True
+        ).first()
+        result.append({
+            "id": med.id,
+            "name": med.name,
+            "dosage": med.dosage,
+            "taken": bool(log)
+        })
+    return result
 
 @router.post("/medicines/log", response_model=MedicineLogOut)
 def log_medicine(

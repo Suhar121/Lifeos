@@ -8,6 +8,7 @@ import Habits from './pages/Habits';
 import AIInsights from './pages/AIInsights';
 import CalendarPage from './pages/CalendarPage';
 import WeeklyReport from './pages/WeeklyReport';
+import HealthPage from './pages/HealthPage';
 import Navbar from './components/Navbar';
 
 const ProtectedRoute = ({ children }) => {
@@ -60,7 +61,14 @@ function App() {
               <WeeklyReport />
             </ProtectedRoute>
           } />
-          
+
+          <Route path="/health" element={
+            <ProtectedRoute>
+              <Navbar />
+              <HealthPage />
+            </ProtectedRoute>
+          } />
+
           <Route path="/insights" element={
             <ProtectedRoute>
               <Navbar />

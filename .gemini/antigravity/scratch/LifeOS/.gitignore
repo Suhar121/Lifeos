@@ -28,6 +28,12 @@ dist-ssr/
 .DS_Store
 Thumbs.db
 
+# Virtual environments (including typos)
+app/vevn/
+
+# Log files
+*.log
+
 # Other
 .DS_Store
 .system_generated/

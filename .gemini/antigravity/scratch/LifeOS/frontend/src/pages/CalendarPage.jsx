@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import api from '../services/api';
-import { ChevronLeft, ChevronRight, Plus, Pill, X, Trash2, Bell, BellOff, Check, Clock } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Pill, X, Trash2, Bell, BellOff, Check, Clock, Pencil, Heart, Activity, Scale, Droplets } from 'lucide-react';
 
 const EVENT_COLORS = [
   { value: 'indigo', bg: 'bg-indigo-500', light: 'bg-indigo-500/15', text: 'text-indigo-400', dot: 'bg-indigo-400' },
@@ -23,6 +23,11 @@ const CalendarPage = () => {
   const [showMedModal, setShowMedModal] = useState(false);
   const [activeTab, setActiveTab] = useState('events'); // events | medicines
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [editingEvent, setEditingEvent] = useState(null);
+  const [editingMed, setEditingMed] = useState(null);
+  const [dayVitals, setDayVitals] = useState(null);
+  const [dayMedLogs, setDayMedLogs] = useState([]);
+  const [loadingDayData, setLoadingDayData] = useState(false);
 
   const [eventForm, setEventForm] = useState({
     title: '', description: '', event_type: 'personal',
@@ -34,11 +39,33 @@ const CalendarPage = () => {
   });
 
   const notifTimersRef = useRef([]);
+  const notificationSoundRef = useRef(null);
+
+  // Initialize notification sound on mount
+  useEffect(() => {
+    notificationSoundRef.current = new Audio('/notification.mp3');
+    notificationSoundRef.current.volume = 0.7;
+  }, []);
+
+  // Check notification permission on mount
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      const savedState = localStorage.getItem('notificationsEnabled');
+      if (savedState === 'true') {
+        setNotificationsEnabled(true);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     fetchEvents();
     fetchMedicines();
   }, [currentDate]);
+
+  // Fetch day summary for the initially selected date (today)
+  useEffect(() => {
+    if (selectedDate) fetchDaySummary(selectedDate);
+  }, []);
 
   // Medicine reminder notifications
   useEffect(() => {
@@ -61,10 +88,15 @@ const CalendarPage = () => {
       // Only schedule if within 24h
       if (diff > 0 && diff < 24 * 60 * 60 * 1000) {
         const timer = setTimeout(() => {
+          // Play notification sound
+          if (notificationSoundRef.current) {
+            notificationSoundRef.current.play().catch(err => console.log('Sound play failed:', err));
+          }
           new Notification('💊 Medicine Reminder', {
             body: `Time to take ${med.name}${med.dosage ? ` (${med.dosage})` : ''}`,
             icon: '💊',
             tag: `med-${med.id}`,
+            silent: false,
           });
         }, diff);
         notifTimersRef.current.push(timer);
@@ -79,13 +111,39 @@ const CalendarPage = () => {
       alert('Your browser does not support notifications');
       return;
     }
-    const permission = await Notification.requestPermission();
+    
+    // Check current permission
+    let permission = Notification.permission;
+    
+    // Request permission if not already determined
+    if (permission === 'default') {
+      permission = await Notification.requestPermission();
+    }
+    
     if (permission === 'granted') {
       setNotificationsEnabled(true);
+      localStorage.setItem('notificationsEnabled', 'true');
+      
+      // Play sound for confirmation
+      if (notificationSoundRef.current) {
+        notificationSoundRef.current.play().catch(err => console.log('Sound play failed:', err));
+      }
+      
       new Notification('🔔 Notifications Enabled', {
         body: 'You\'ll receive medicine reminders on time!',
+        silent: false,
       });
+    } else if (permission === 'denied') {
+      alert('Notifications are blocked. Please enable them in your browser settings.');
     }
+  };
+
+  const disableNotifications = () => {
+    setNotificationsEnabled(false);
+    localStorage.setItem('notificationsEnabled', 'false');
+    // Clear all pending notification timers
+    notifTimersRef.current.forEach(t => clearTimeout(t));
+    notifTimersRef.current = [];
   };
 
   const fetchEvents = async () => {
@@ -109,11 +167,29 @@ const CalendarPage = () => {
   const handleCreateEvent = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/calendar/events', eventForm);
+      if (editingEvent) {
+        await api.put(`/calendar/events/${editingEvent.id}`, eventForm);
+        setEditingEvent(null);
+      } else {
+        await api.post('/calendar/events', eventForm);
+      }
       setShowEventModal(false);
       setEventForm({ title: '', description: '', event_type: 'personal', event_date: new Date().toISOString().split('T')[0], event_time: '', color: 'indigo' });
       fetchEvents();
     } catch (err) { console.error(err); }
+  };
+
+  const startEditEvent = (ev) => {
+    setEditingEvent(ev);
+    setEventForm({
+      title: ev.title,
+      description: ev.description || '',
+      event_type: ev.event_type,
+      event_date: ev.event_date,
+      event_time: ev.event_time || '',
+      color: ev.color || 'indigo'
+    });
+    setShowEventModal(true);
   };
 
   const deleteEvent = async (id) => {
@@ -126,11 +202,27 @@ const CalendarPage = () => {
   const handleCreateMedicine = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/calendar/medicines', medForm);
+      if (editingMed) {
+        await api.put(`/calendar/medicines/${editingMed.id}`, medForm);
+        setEditingMed(null);
+      } else {
+        await api.post('/calendar/medicines', medForm);
+      }
       setShowMedModal(false);
       setMedForm({ name: '', dosage: '', frequency: 'Daily', reminder_time: '08:00' });
       fetchMedicines();
     } catch (err) { console.error(err); }
+  };
+
+  const startEditMedicine = (med) => {
+    setEditingMed(med);
+    setMedForm({
+      name: med.name,
+      dosage: med.dosage || '',
+      frequency: med.frequency || 'Daily',
+      reminder_time: med.reminder_time || '08:00'
+    });
+    setShowMedModal(true);
   };
 
   const deleteMedicine = async (id) => {
@@ -165,6 +257,22 @@ const CalendarPage = () => {
   const { firstDay, daysInMonth } = getDaysInMonth(currentDate);
   const monthName = currentDate.toLocaleString('default', { month: 'long', year: 'numeric' });
 
+  const fetchDaySummary = async (day) => {
+    const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    setLoadingDayData(true);
+    setDayVitals(null);
+    setDayMedLogs([]);
+    try {
+      const [vitalsRes, medLogsRes] = await Promise.allSettled([
+        api.get(`/daily-logs/by-date/${dateStr}`),
+        api.get(`/calendar/medicines/logs-by-date/${dateStr}`)
+      ]);
+      if (vitalsRes.status === 'fulfilled') setDayVitals(vitalsRes.value.data);
+      if (medLogsRes.status === 'fulfilled') setDayMedLogs(medLogsRes.value.data);
+    } catch (err) { console.error(err); }
+    setLoadingDayData(false);
+  };
+
   const getEventsForDay = (day) => {
     const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     return events.filter(e => e.event_date === dateStr);
@@ -179,7 +287,7 @@ const CalendarPage = () => {
 
   const prevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1));
   const nextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1));
-  const goToToday = () => { setCurrentDate(new Date()); setSelectedDate(new Date().getDate()); };
+  const goToToday = () => { setCurrentDate(new Date()); setSelectedDate(new Date().getDate()); fetchDaySummary(new Date().getDate()); };
 
   const selectedDateStr = selectedDate ?
     `${currentDate.toLocaleString('default', { month: 'short' })} ${selectedDate}, ${currentDate.getFullYear()}` :
@@ -248,7 +356,7 @@ const CalendarPage = () => {
               return (
                 <button
                   key={day}
-                  onClick={() => setSelectedDate(day)}
+                  onClick={() => { setSelectedDate(day); fetchDaySummary(day); setActiveTab('summary'); }}
                   className={`aspect-square flex flex-col items-center justify-center rounded-xl text-sm transition-all relative group
                     ${today && !selected ? 'bg-indigo-600/20 text-indigo-400 font-bold ring-1 ring-indigo-500/50' : ''}
                     ${selected ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 scale-105' : 'text-gray-300 hover:bg-neutral-700/50'}
@@ -277,19 +385,27 @@ const CalendarPage = () => {
           <div className="flex bg-neutral-800/50 rounded-xl p-1 border border-neutral-700/50">
             <button
               onClick={() => setActiveTab('events')}
-              className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
+              className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${
                 activeTab === 'events' ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:text-white'
               }`}
             >
               📅 Events
             </button>
             <button
+              onClick={() => setActiveTab('summary')}
+              className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${
+                activeTab === 'summary' ? 'bg-rose-600 text-white' : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              🩺 Day Info
+            </button>
+            <button
               onClick={() => setActiveTab('medicines')}
-              className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
+              className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${
                 activeTab === 'medicines' ? 'bg-emerald-600 text-white' : 'text-gray-400 hover:text-white'
               }`}
             >
-              💊 Medicines {medsTotal > 0 && `(${medsTaken}/${medsTotal})`}
+              💊 Meds {medsTotal > 0 && `${medsTaken}/${medsTotal}`}
             </button>
           </div>
 
@@ -332,12 +448,20 @@ const CalendarPage = () => {
                               )}
                             </div>
                           </div>
-                          <button
-                            onClick={() => deleteEvent(ev.id)}
-                            className="text-gray-600 hover:text-red-400 p-1 opacity-0 group-hover:opacity-100 transition-all"
-                          >
-                            <Trash2 size={14} />
-                          </button>
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                            <button
+                              onClick={() => startEditEvent(ev)}
+                              className="text-gray-600 hover:text-indigo-400 p-1 transition-all"
+                            >
+                              <Pencil size={14} />
+                            </button>
+                            <button
+                              onClick={() => deleteEvent(ev.id)}
+                              className="text-gray-600 hover:text-red-400 p-1 transition-all"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
                         </div>
                       </div>
                     );
@@ -360,13 +484,158 @@ const CalendarPage = () => {
             </div>
           )}
 
+          {/* Day Summary Tab */}
+          {activeTab === 'summary' && (
+            <div className="bg-neutral-800/50 rounded-2xl p-5 border border-neutral-700/50">
+              <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+                <Activity size={16} className="text-rose-400" />
+                {selectedDateStr} — Summary
+              </h3>
+
+              {loadingDayData ? (
+                <div className="text-center py-6 text-gray-400 text-sm">Loading...</div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Vitals Section */}
+                  {dayVitals ? (
+                    <>
+                      {/* Mood & Scores */}
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="bg-neutral-900/60 rounded-xl p-3 text-center">
+                          <span className="text-2xl block mb-1">
+                            {dayVitals.mood === 'happy' ? '😊' : dayVitals.mood === 'sad' ? '😢' : dayVitals.mood === 'anxious' ? '😰' : dayVitals.mood === 'calm' ? '😌' : '😐'}
+                          </span>
+                          <p className="text-[10px] text-gray-500 uppercase tracking-wider">Mood</p>
+                          <p className="text-xs text-gray-300 capitalize">{dayVitals.mood}</p>
+                        </div>
+                        <div className="bg-neutral-900/60 rounded-xl p-3 text-center">
+                          <span className="text-2xl block mb-1 font-bold text-indigo-400">{dayVitals.life_score || '—'}</span>
+                          <p className="text-[10px] text-gray-500 uppercase tracking-wider">Life Score</p>
+                        </div>
+                      </div>
+
+                      {/* Quick Stats */}
+                      <div className="grid grid-cols-4 gap-2">
+                        {[
+                          { label: 'Energy', value: dayVitals.energy, icon: '⚡' },
+                          { label: 'Focus', value: dayVitals.focus, icon: '🎯' },
+                          { label: 'Product.', value: dayVitals.productivity, icon: '🚀' },
+                          { label: 'Sleep', value: dayVitals.sleep_hours ? `${dayVitals.sleep_hours}h` : '—', icon: '🌙' },
+                        ].map((s, i) => (
+                          <div key={i} className="bg-neutral-900/60 rounded-xl p-2 text-center">
+                            <span className="text-sm block">{s.icon}</span>
+                            <p className="text-xs font-semibold text-white">{s.value ?? '—'}</p>
+                            <p className="text-[9px] text-gray-500">{s.label}</p>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Activity flags */}
+                      <div className="flex gap-2">
+                        <span className={`text-xs px-3 py-1.5 rounded-full ${dayVitals.workout ? 'bg-green-500/20 text-green-400' : 'bg-neutral-700 text-gray-500'}`}>
+                          {dayVitals.workout ? '💪 Worked out' : '🛋️ No workout'}
+                        </span>
+                        <span className={`text-xs px-3 py-1.5 rounded-full ${dayVitals.junk_food ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}>
+                          {dayVitals.junk_food ? '🍔 Junk food' : '🥗 Clean eating'}
+                        </span>
+                      </div>
+
+                      {/* Health Vitals */}
+                      {(dayVitals.weight || dayVitals.bp_systolic || dayVitals.blood_sugar || dayVitals.heart_rate) && (
+                        <div>
+                          <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1">
+                            <Heart size={10} className="text-rose-400" /> Health Vitals
+                          </p>
+                          <div className="grid grid-cols-2 gap-2">
+                            {dayVitals.weight && (
+                              <div className="bg-neutral-900/60 rounded-xl p-2.5 flex items-center gap-2">
+                                <Scale size={14} className="text-emerald-400 shrink-0" />
+                                <div>
+                                  <p className="text-xs font-semibold text-white">{dayVitals.weight} kg</p>
+                                  <p className="text-[9px] text-gray-500">Weight</p>
+                                </div>
+                              </div>
+                            )}
+                            {dayVitals.bp_systolic && (
+                              <div className="bg-neutral-900/60 rounded-xl p-2.5 flex items-center gap-2">
+                                <Heart size={14} className="text-rose-400 shrink-0" />
+                                <div>
+                                  <p className="text-xs font-semibold text-white">{dayVitals.bp_systolic}/{dayVitals.bp_diastolic}</p>
+                                  <p className="text-[9px] text-gray-500">Blood Pressure</p>
+                                </div>
+                              </div>
+                            )}
+                            {dayVitals.blood_sugar && (
+                              <div className="bg-neutral-900/60 rounded-xl p-2.5 flex items-center gap-2">
+                                <Droplets size={14} className="text-blue-400 shrink-0" />
+                                <div>
+                                  <p className="text-xs font-semibold text-white">{dayVitals.blood_sugar} mg/dL</p>
+                                  <p className="text-[9px] text-gray-500">Blood Sugar</p>
+                                </div>
+                              </div>
+                            )}
+                            {dayVitals.heart_rate && (
+                              <div className="bg-neutral-900/60 rounded-xl p-2.5 flex items-center gap-2">
+                                <Activity size={14} className="text-rose-400 shrink-0" />
+                                <div>
+                                  <p className="text-xs font-semibold text-white">{dayVitals.heart_rate} bpm</p>
+                                  <p className="text-[9px] text-gray-500">Heart Rate</p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {dayVitals.notes && (
+                        <div className="bg-neutral-900/60 rounded-xl p-3">
+                          <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">📝 Notes</p>
+                          <p className="text-xs text-gray-300">{dayVitals.notes}</p>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="text-center py-4">
+                      <span className="text-2xl block mb-2">📋</span>
+                      <p className="text-gray-500 text-xs">No check-in data for this day</p>
+                    </div>
+                  )}
+
+                  {/* Medicine Logs */}
+                  {dayMedLogs.length > 0 && (
+                    <div>
+                      <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1">
+                        <Pill size={10} className="text-emerald-400" /> Medicines
+                      </p>
+                      <div className="space-y-1.5">
+                        {dayMedLogs.map(m => (
+                          <div key={m.id} className={`flex items-center gap-2 rounded-lg p-2 text-xs ${m.taken ? 'bg-emerald-900/20' : 'bg-neutral-900/60'}`}>
+                            <span className={`w-5 h-5 rounded flex items-center justify-center text-[10px] ${m.taken ? 'bg-emerald-500 text-white' : 'bg-neutral-700 text-gray-500'}`}>
+                              {m.taken ? '✓' : '✗'}
+                            </span>
+                            <span className={`flex-1 ${m.taken ? 'text-emerald-400' : 'text-gray-400'}`}>
+                              {m.name} {m.dosage && <span className="text-gray-600">({m.dosage})</span>}
+                            </span>
+                            <span className={`text-[10px] ${m.taken ? 'text-emerald-500' : 'text-red-400'}`}>
+                              {m.taken ? 'Taken' : 'Missed'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Medicines Tab */}
           {activeTab === 'medicines' && (
             <div className="bg-neutral-800/50 rounded-2xl p-5 border border-neutral-700/50">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-semibold text-white">Today's Medicines</h3>
                 <button
-                  onClick={notificationsEnabled ? () => setNotificationsEnabled(false) : enableNotifications}
+                  onClick={notificationsEnabled ? disableNotifications : enableNotifications}
                   className={`flex items-center gap-1 text-xs px-3 py-1.5 rounded-full transition-all ${
                     notificationsEnabled
                       ? 'bg-emerald-600/20 text-emerald-400'
@@ -435,12 +704,20 @@ const CalendarPage = () => {
                           </div>
                         </div>
 
-                        <button
-                          onClick={() => deleteMedicine(med.id)}
-                          className="text-gray-600 hover:text-red-400 p-1 opacity-0 group-hover:opacity-100 transition-all shrink-0"
-                        >
-                          <Trash2 size={14} />
-                        </button>
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all shrink-0">
+                          <button
+                            onClick={() => startEditMedicine(med)}
+                            className="text-gray-600 hover:text-indigo-400 p-1 transition-all"
+                          >
+                            <Pencil size={14} />
+                          </button>
+                          <button
+                            onClick={() => deleteMedicine(med.id)}
+                            className="text-gray-600 hover:text-red-400 p-1 transition-all"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -467,8 +744,8 @@ const CalendarPage = () => {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-neutral-800 rounded-2xl p-6 sm:p-8 w-full max-w-md border border-neutral-700 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-white">New Event</h2>
-              <button onClick={() => setShowEventModal(false)} className="text-gray-400 hover:text-white p-2">
+              <h2 className="text-xl font-bold text-white">{editingEvent ? 'Edit Event' : 'New Event'}</h2>
+              <button onClick={() => { setShowEventModal(false); setEditingEvent(null); setEventForm({ title: '', description: '', event_type: 'personal', event_date: new Date().toISOString().split('T')[0], event_time: '', color: 'indigo' }); }} className="text-gray-400 hover:text-white p-2">
                 <X size={20} />
               </button>
             </div>
@@ -537,10 +814,10 @@ const CalendarPage = () => {
               </div>
 
               <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setShowEventModal(false)}
+                <button type="button" onClick={() => { setShowEventModal(false); setEditingEvent(null); setEventForm({ title: '', description: '', event_type: 'personal', event_date: new Date().toISOString().split('T')[0], event_time: '', color: 'indigo' }); }}
                   className="flex-1 bg-neutral-700 hover:bg-neutral-600 text-white py-3 rounded-xl transition-colors font-medium">Cancel</button>
                 <button type="submit"
-                  className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl transition-colors font-medium">Create Event</button>
+                  className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl transition-colors font-medium">{editingEvent ? 'Save Changes' : 'Create Event'}</button>
               </div>
             </form>
           </div>
@@ -552,8 +829,8 @@ const CalendarPage = () => {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-neutral-800 rounded-2xl p-6 sm:p-8 w-full max-w-md border border-neutral-700 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-white">Add Medicine</h2>
-              <button onClick={() => setShowMedModal(false)} className="text-gray-400 hover:text-white p-2">
+              <h2 className="text-xl font-bold text-white">{editingMed ? 'Edit Medicine' : 'Add Medicine'}</h2>
+              <button onClick={() => { setShowMedModal(false); setEditingMed(null); setMedForm({ name: '', dosage: '', frequency: 'Daily', reminder_time: '08:00' }); }} className="text-gray-400 hover:text-white p-2">
                 <X size={20} />
               </button>
             </div>
@@ -604,10 +881,10 @@ const CalendarPage = () => {
               </div>
 
               <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setShowMedModal(false)}
+                <button type="button" onClick={() => { setShowMedModal(false); setEditingMed(null); setMedForm({ name: '', dosage: '', frequency: 'Daily', reminder_time: '08:00' }); }}
                   className="flex-1 bg-neutral-700 hover:bg-neutral-600 text-white py-3 rounded-xl transition-colors font-medium">Cancel</button>
                 <button type="submit"
-                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl transition-colors font-medium">Add Medicine</button>
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl transition-colors font-medium">{editingMed ? 'Save Changes' : 'Add Medicine'}</button>
               </div>
             </form>
           </div>
