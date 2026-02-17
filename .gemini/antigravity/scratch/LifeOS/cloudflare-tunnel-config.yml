@@ -28,6 +28,10 @@ ingress:
     path: /life-score/*
     service: http://localhost:8000
   
+  - hostname: lifebuddy.dpdns.org
+    path: /care/*
+    service: http://localhost:8000
+  
   # Route documentation to backend
   - hostname: lifebuddy.dpdns.org
     path: /docs*

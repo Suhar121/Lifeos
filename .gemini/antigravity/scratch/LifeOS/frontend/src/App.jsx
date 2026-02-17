@@ -9,6 +9,7 @@ import AIInsights from './pages/AIInsights';
 import CalendarPage from './pages/CalendarPage';
 import WeeklyReport from './pages/WeeklyReport';
 import HealthPage from './pages/HealthPage';
+import CarePage from './pages/CarePage';
 import Navbar from './components/Navbar';
 
 const ProtectedRoute = ({ children }) => {
@@ -73,6 +74,13 @@ function App() {
             <ProtectedRoute>
               <Navbar />
               <AIInsights />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/care" element={
+            <ProtectedRoute>
+              <Navbar />
+              <CarePage />
             </ProtectedRoute>
           } />
         </Routes>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Activity, BarChart2, CheckSquare, Sparkles, LogOut, PlusCircle, Calendar, FileBarChart, HeartPulse } from 'lucide-react';
+import { Activity, BarChart2, CheckSquare, Sparkles, LogOut, PlusCircle, Calendar, FileBarChart, HeartPulse, Users } from 'lucide-react';
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -69,6 +69,7 @@ const Navbar = () => {
               <NavItem to="/habits" icon={CheckSquare} label="Habits" />
               <NavItem to="/calendar" icon={Calendar} label="Calendar" />
               <NavItem to="/report" icon={FileBarChart} label="Report" />
+              <NavItem to="/care" icon={Users} label="Care" />
               <NavItem to="/insights" icon={Sparkles} label="AI" />
             </div>
 
@@ -93,6 +94,7 @@ const Navbar = () => {
           <MobileNavItem to="/health" icon={HeartPulse} label="Vitals" />
           <MobileNavItem to="/habits" icon={CheckSquare} label="Habits" />
           <MobileNavItem to="/calendar" icon={Calendar} label="Cal" />
+          <MobileNavItem to="/care" icon={Users} label="Care" />
           <MobileNavItem to="/report" icon={FileBarChart} label="Report" />
         </div>
       </div>

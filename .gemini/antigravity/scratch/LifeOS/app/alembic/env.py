@@ -26,7 +26,8 @@ if db_url:
     # Ensure postgresql:// is used instead of postgres://
     if db_url.startswith("postgres://"):
         db_url = db_url.replace("postgres://", "postgresql://", 1)
-    config.set_main_option("sqlalchemy.url", db_url)
+    # Escape % for ConfigParser interpolation
+    config.set_main_option("sqlalchemy.url", db_url.replace("%", "%%"))
 
 
 # add your model's MetaData object here

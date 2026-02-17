@@ -7,6 +7,7 @@ import os
 load_dotenv()
 
 from app.routes import auth, daily_logs, habits, ai, calendar, life_score, reports
+from app.routes import care
 
 app = FastAPI(title="LifeOS API", version="1.0.0")
 
@@ -34,6 +35,7 @@ app.include_router(ai.router, prefix="/ai", tags=["AI Analysis"])
 app.include_router(calendar.router, prefix="/calendar", tags=["Calendar & Medicines"])
 app.include_router(life_score.router, prefix="/life-score", tags=["Life Score"])
 app.include_router(reports.router, prefix="/ai", tags=["AI Reports"])
+app.include_router(care.router, prefix="/care", tags=["Care"])
 
 @app.get("/")
 def read_root():
