@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import api from '../services/api';
-import { ChevronLeft, ChevronRight, Plus, Pill, X, Trash2, Bell, BellOff, Check, Clock, Pencil, Heart, Activity, Scale, Droplets } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Pill, X, Trash2, Bell, BellOff, Check, Clock, Pencil, Heart, Activity, Scale, Droplets, Camera } from 'lucide-react';
 
 const EVENT_COLORS = [
   { value: 'indigo', bg: 'bg-indigo-500', light: 'bg-indigo-500/15', text: 'text-indigo-400', dot: 'bg-indigo-400' },
@@ -37,6 +37,9 @@ const CalendarPage = () => {
   const [medForm, setMedForm] = useState({
     name: '', dosage: '', frequency: 'Daily', reminder_time: '08:00'
   });
+  const [medPhoto, setMedPhoto] = useState(null);
+  const [medPhotoPreview, setMedPhotoPreview] = useState(null);
+  const [removeMedPhoto, setRemoveMedPhoto] = useState(false);
 
   const notifTimersRef = useRef([]);
   const notificationSoundRef = useRef(null);
@@ -124,13 +127,21 @@ const CalendarPage = () => {
       setNotificationsEnabled(true);
       localStorage.setItem('notificationsEnabled', 'true');
       
+      // Also subscribe to push notifications (works when app is closed)
+      try {
+        const { subscribeToPush } = await import('../services/pushNotifications');
+        await subscribeToPush();
+      } catch (err) {
+        console.log('Push subscription skipped:', err);
+      }
+      
       // Play sound for confirmation
       if (notificationSoundRef.current) {
         notificationSoundRef.current.play().catch(err => console.log('Sound play failed:', err));
       }
       
       new Notification('🔔 Notifications Enabled', {
-        body: 'You\'ll receive medicine reminders on time!',
+        body: 'You\'ll receive medicine reminders even when the app is closed!',
         silent: false,
       });
     } else if (permission === 'denied') {
@@ -202,14 +213,24 @@ const CalendarPage = () => {
   const handleCreateMedicine = async (e) => {
     e.preventDefault();
     try {
+      const fd = new FormData();
+      fd.append('name', medForm.name);
+      if (medForm.dosage) fd.append('dosage', medForm.dosage);
+      if (medForm.frequency) fd.append('frequency', medForm.frequency);
+      if (medForm.reminder_time) fd.append('reminder_time', medForm.reminder_time);
+      if (medPhoto) fd.append('photo', medPhoto);
       if (editingMed) {
-        await api.put(`/calendar/medicines/${editingMed.id}`, medForm);
+        if (removeMedPhoto) fd.append('remove_photo', 'true');
+        await api.put(`/calendar/medicines/${editingMed.id}`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
         setEditingMed(null);
       } else {
-        await api.post('/calendar/medicines', medForm);
+        await api.post('/calendar/medicines', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
       }
       setShowMedModal(false);
       setMedForm({ name: '', dosage: '', frequency: 'Daily', reminder_time: '08:00' });
+      setMedPhoto(null);
+      setMedPhotoPreview(null);
+      setRemoveMedPhoto(false);
       fetchMedicines();
     } catch (err) { console.error(err); }
   };
@@ -222,6 +243,13 @@ const CalendarPage = () => {
       frequency: med.frequency || 'Daily',
       reminder_time: med.reminder_time || '08:00'
     });
+    setMedPhoto(null);
+    setRemoveMedPhoto(false);
+    if (med.photo_url) {
+      setMedPhotoPreview(`${api.defaults.baseURL}/calendar/medicines/photo/${med.photo_url}`);
+    } else {
+      setMedPhotoPreview(null);
+    }
     setShowMedModal(true);
   };
 
@@ -687,6 +715,12 @@ const CalendarPage = () => {
                           {med.taken_today ? <Check size={14} /> : <Pill size={14} />}
                         </button>
 
+                        {med.photo_url && (
+                          <img src={`${api.defaults.baseURL}/calendar/medicines/photo/${med.photo_url}`}
+                            alt={med.name}
+                            className="w-10 h-10 rounded-lg object-cover border border-neutral-600 shrink-0" />
+                        )}
+
                         <div className="flex-1 min-w-0">
                           <p className={`text-sm font-medium transition-all ${
                             med.taken_today ? 'text-emerald-400 line-through opacity-70' : 'text-white'
@@ -830,7 +864,7 @@ const CalendarPage = () => {
           <div className="bg-neutral-800 rounded-2xl p-6 sm:p-8 w-full max-w-md border border-neutral-700 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-white">{editingMed ? 'Edit Medicine' : 'Add Medicine'}</h2>
-              <button onClick={() => { setShowMedModal(false); setEditingMed(null); setMedForm({ name: '', dosage: '', frequency: 'Daily', reminder_time: '08:00' }); }} className="text-gray-400 hover:text-white p-2">
+              <button onClick={() => { setShowMedModal(false); setEditingMed(null); setMedForm({ name: '', dosage: '', frequency: 'Daily', reminder_time: '08:00' }); setMedPhoto(null); setMedPhotoPreview(null); setRemoveMedPhoto(false); }} className="text-gray-400 hover:text-white p-2">
                 <X size={20} />
               </button>
             </div>
@@ -848,6 +882,33 @@ const CalendarPage = () => {
                 <input type="text" placeholder="e.g., 500mg or 1 tablet" value={medForm.dosage}
                   onChange={e => setMedForm({ ...medForm, dosage: e.target.value })}
                   className="w-full bg-neutral-700 border border-neutral-600 text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-emerald-500 outline-none" />
+              </div>
+
+              {/* Medicine Photo (optional) */}
+              <div>
+                <label className="text-xs text-gray-400 block mb-1.5 flex items-center gap-1">
+                  <Camera size={12} /> Medicine Photo (optional)
+                </label>
+                {(medPhotoPreview && !removeMedPhoto) ? (
+                  <div className="relative inline-block">
+                    <img src={medPhotoPreview} alt="Medicine" className="w-20 h-20 rounded-xl object-cover border border-neutral-600" />
+                    <button type="button" onClick={() => { setMedPhoto(null); setMedPhotoPreview(null); setRemoveMedPhoto(true); }}
+                      className="absolute -top-2 -right-2 bg-red-600 rounded-full p-0.5 text-white hover:bg-red-700">
+                      <X size={12} />
+                    </button>
+                  </div>
+                ) : (
+                  <input type="file" accept="image/*"
+                    onChange={e => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        setMedPhoto(file);
+                        setMedPhotoPreview(URL.createObjectURL(file));
+                        setRemoveMedPhoto(false);
+                      }
+                    }}
+                    className="w-full bg-neutral-700 border border-neutral-600 text-white rounded-lg px-4 py-2.5 text-sm file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:bg-emerald-600 file:text-white file:text-xs file:cursor-pointer" />
+                )}
               </div>
 
               <div>
@@ -881,7 +942,7 @@ const CalendarPage = () => {
               </div>
 
               <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => { setShowMedModal(false); setEditingMed(null); setMedForm({ name: '', dosage: '', frequency: 'Daily', reminder_time: '08:00' }); }}
+                <button type="button" onClick={() => { setShowMedModal(false); setEditingMed(null); setMedForm({ name: '', dosage: '', frequency: 'Daily', reminder_time: '08:00' }); setMedPhoto(null); setMedPhotoPreview(null); setRemoveMedPhoto(false); }}
                   className="flex-1 bg-neutral-700 hover:bg-neutral-600 text-white py-3 rounded-xl transition-colors font-medium">Cancel</button>
                 <button type="submit"
                   className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl transition-colors font-medium">{editingMed ? 'Save Changes' : 'Add Medicine'}</button>

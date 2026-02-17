@@ -13,3 +13,4 @@ python-dotenv
 openai
 requests
 email-validator
+pywebpush

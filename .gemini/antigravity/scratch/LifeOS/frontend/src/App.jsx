@@ -10,7 +10,9 @@ import CalendarPage from './pages/CalendarPage';
 import WeeklyReport from './pages/WeeklyReport';
 import HealthPage from './pages/HealthPage';
 import CarePage from './pages/CarePage';
+import ProfilePage from './pages/ProfilePage';
 import Navbar from './components/Navbar';
+import { subscribeToPush } from './services/pushNotifications';
 
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('token');
@@ -21,6 +23,14 @@ const ProtectedRoute = ({ children }) => {
 };
 
 function App() {
+  // Auto-subscribe to push notifications if already logged in
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      subscribeToPush().catch(err => console.log('Push auto-subscribe skipped:', err));
+    }
+  }, []);
+
   return (
     <Router>
       <div className="min-h-screen bg-neutral-900 text-gray-100 font-sans pb-32 md:pb-0">
@@ -81,6 +91,13 @@ function App() {
             <ProtectedRoute>
               <Navbar />
               <CarePage />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/profile" element={
+            <ProtectedRoute>
+              <Navbar />
+              <ProfilePage />
             </ProtectedRoute>
           } />
         </Routes>

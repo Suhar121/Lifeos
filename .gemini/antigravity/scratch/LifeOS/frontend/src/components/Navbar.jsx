@@ -1,14 +1,35 @@
-import React from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Activity, BarChart2, CheckSquare, Sparkles, LogOut, PlusCircle, Calendar, FileBarChart, HeartPulse, Users } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { Activity, BarChart2, CheckSquare, Sparkles, PlusCircle, Calendar, FileBarChart, HeartPulse, Users, UserCircle } from 'lucide-react';
+import api from '../services/api';
 
 const Navbar = () => {
-  const navigate = useNavigate();
   const location = useLocation();
+  const [profilePhoto, setProfilePhoto] = useState(null);
+  const [userName, setUserName] = useState('');
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    navigate('/login');
+  useEffect(() => {
+    api.get('/profile/').then(({ data }) => {
+      setProfilePhoto(data.profile_photo_url);
+      setUserName(data.name || '');
+    }).catch(() => {});
+  }, []);
+
+  const getPhotoUrl = () => {
+    if (!profilePhoto) return null;
+    const base = api.defaults.baseURL || '';
+    return `${base}${profilePhoto}`;
+  };
+
+  const ProfileAvatar = ({ size = 24 }) => {
+    const photoUrl = getPhotoUrl();
+    if (photoUrl) {
+      return <img src={photoUrl} alt="Profile" className="w-full h-full object-cover rounded-full" />;
+    }
+    if (userName) {
+      return <span className="text-xs font-bold text-white">{userName.charAt(0).toUpperCase()}</span>;
+    }
+    return <UserCircle size={size} className={location.pathname === '/profile' ? 'text-indigo-400' : 'text-gray-400'} />;
   };
 
   const NavItem = ({ to, icon: Icon, label }) => {
@@ -74,13 +95,17 @@ const Navbar = () => {
             </div>
 
             <div className="flex items-center">
-              <button
-                onClick={handleLogout}
-                className="text-gray-400 hover:text-white hover:bg-neutral-800 p-2 rounded-lg transition-colors"
-                title="Logout"
+              <Link
+                to="/profile"
+                className={`rounded-full transition-all ring-2 overflow-hidden w-9 h-9 flex items-center justify-center ${
+                  location.pathname === '/profile'
+                    ? 'ring-indigo-500 bg-indigo-600/20'
+                    : 'ring-neutral-600 hover:ring-indigo-400 bg-neutral-700'
+                }`}
+                title="Profile"
               >
-                <LogOut size={20} />
-              </button>
+                <ProfileAvatar size={22} />
+              </Link>
             </div>
           </div>
         </div>
@@ -96,6 +121,20 @@ const Navbar = () => {
           <MobileNavItem to="/calendar" icon={Calendar} label="Cal" />
           <MobileNavItem to="/care" icon={Users} label="Care" />
           <MobileNavItem to="/report" icon={FileBarChart} label="Report" />
+          <Link
+            to="/profile"
+            className={`flex flex-col items-center justify-center space-y-1 px-3 py-1 transition-all relative ${
+              location.pathname === '/profile' ? 'text-indigo-400 font-semibold scale-105' : 'text-gray-500 hover:text-white'
+            }`}
+          >
+            <div className={`w-5 h-5 rounded-full overflow-hidden flex items-center justify-center ${!getPhotoUrl() && !userName ? '' : 'bg-neutral-600'}`}>
+              <ProfileAvatar size={20} />
+            </div>
+            <span className="text-[9px] uppercase tracking-wider font-bold">Me</span>
+            {location.pathname === '/profile' && (
+              <div className="absolute -top-1.5 w-1 h-1 bg-indigo-500 rounded-full shadow-[0_0_8px_rgba(99,102,241,0.8)]" />
+            )}
+          </Link>
         </div>
       </div>
 

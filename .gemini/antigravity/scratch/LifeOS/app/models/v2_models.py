@@ -34,6 +34,7 @@ class Medicine(Base):
     dosage = Column(String, nullable=True)
     frequency = Column(String, nullable=True)
     reminder_time = Column(String(10), nullable=True)
+    photo_url = Column(String(300), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", backref="medicines")
@@ -58,3 +59,20 @@ class WeeklyReport(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", backref="weekly_reports")
+
+
+class MedicalReport(Base):
+    __tablename__ = "medical_reports"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
+    title = Column(String(200), nullable=False)
+    description = Column(Text, nullable=True)
+    file_name = Column(String(300), nullable=False)
+    file_path = Column(String(500), nullable=False)
+    file_type = Column(String(50), nullable=True)   # pdf, image, etc.
+    file_size = Column(Integer, nullable=True)       # bytes
+    report_date = Column(Date, nullable=True)        # date of the report/test
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User", backref="medical_reports")

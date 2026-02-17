@@ -8,6 +8,10 @@ load_dotenv()
 
 from app.routes import auth, daily_logs, habits, ai, calendar, life_score, reports
 from app.routes import care
+from app.routes import push
+from app.routes import profile
+from app.routes import medical_reports
+from app.services.notification_scheduler import start_scheduler
 
 app = FastAPI(title="LifeOS API", version="1.0.0")
 
@@ -36,6 +40,12 @@ app.include_router(calendar.router, prefix="/calendar", tags=["Calendar & Medici
 app.include_router(life_score.router, prefix="/life-score", tags=["Life Score"])
 app.include_router(reports.router, prefix="/ai", tags=["AI Reports"])
 app.include_router(care.router, prefix="/care", tags=["Care"])
+app.include_router(push.router, prefix="/push", tags=["Push Notifications"])
+app.include_router(profile.router, prefix="/profile", tags=["Profile"])
+app.include_router(medical_reports.router, prefix="/medical-reports", tags=["Medical Reports"])
+
+# Start background push notification scheduler
+start_scheduler()
 
 @app.get("/")
 def read_root():

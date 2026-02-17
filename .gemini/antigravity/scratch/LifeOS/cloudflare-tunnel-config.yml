@@ -32,6 +32,18 @@ ingress:
     path: /care/*
     service: http://localhost:8000
   
+  - hostname: lifebuddy.dpdns.org
+    path: /push/*
+    service: http://localhost:8000
+  
+  - hostname: lifebuddy.dpdns.org
+    path: /profile/*
+    service: http://localhost:8000
+  
+  - hostname: lifebuddy.dpdns.org
+    path: /medical-reports/*
+    service: http://localhost:8000
+  
   # Route documentation to backend
   - hostname: lifebuddy.dpdns.org
     path: /docs*

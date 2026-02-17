@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../services/api';
 import { Activity } from 'lucide-react';
+import { subscribeToPush } from '../services/pushNotifications';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -23,6 +24,8 @@ const Login = () => {
     try {
       const response = await api.post('/auth/login', { email, password });
       localStorage.setItem('token', response.data.access_token);
+      // Subscribe to push notifications after login
+      subscribeToPush().catch(err => console.log('Push subscription skipped:', err));
       navigate('/');
     } catch (err) {
       setError('Invalid email or password');

@@ -10,14 +10,20 @@ const Dashboard = () => {
   const [lifeScore, setLifeScore] = useState(null);
   const [loading, setLoading] = useState(true);
   const [hasLogToday, setHasLogToday] = useState(true);
+  const [userName, setUserName] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [logsRes, scoreRes] = await Promise.all([
+        const [logsRes, scoreRes, profileRes] = await Promise.all([
           api.get('/daily-logs/last-7-days'),
           api.get('/life-score/weekly').catch(() => null),
+          api.get('/profile/').catch(() => null),
         ]);
+
+        if (profileRes?.data?.name) {
+          setUserName(profileRes.data.name);
+        }
 
         processStats(logsRes.data);
 
@@ -68,8 +74,23 @@ const Dashboard = () => {
 
   if (loading) return <div className="p-8 text-center text-white">Loading insights...</div>;
 
+  const getGreeting = () => {
+    const h = new Date().getHours();
+    if (h < 12) return 'Good morning';
+    if (h < 17) return 'Good afternoon';
+    return 'Good evening';
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Welcome Message */}
+      <div className="mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold text-white">
+          {getGreeting()}{userName ? `, ${userName.split(' ')[0]}` : ''} 👋
+        </h1>
+        <p className="text-gray-400 text-sm mt-1">Here's how your week is looking</p>
+      </div>
+
       {/* Missed Log Banner */}
       {!hasLogToday && (
         <div className="mb-6 bg-amber-900/30 border border-amber-700/50 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">

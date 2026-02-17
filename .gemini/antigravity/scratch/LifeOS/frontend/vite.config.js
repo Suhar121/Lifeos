@@ -9,7 +9,10 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
+      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg', 'notification.mp3'],
+      workbox: {
+        importScripts: ['/sw-push.js']
+      },
       manifest: {
         name: 'LifeOS - AI Life Optimization',
         short_name: 'LifeOS',

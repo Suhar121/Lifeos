@@ -31,6 +31,9 @@ Thumbs.db
 # Virtual environments (including typos)
 app/vevn/
 
+# Uploads
+app/uploads/
+
 # Log files
 *.log
 

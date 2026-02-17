@@ -48,6 +48,8 @@ print(f"🚀 Serving LifeOS Frontend on http://0.0.0.0:{PORT}")
 print(f"📁 Serving from: {os.getcwd()}")
 print("Press Ctrl+C to stop\n")
 
+socketserver.TCPServer.allow_reuse_address = True
+
 with socketserver.TCPServer(("0.0.0.0", PORT), SPAHandler) as httpd:
     try:
         httpd.serve_forever()

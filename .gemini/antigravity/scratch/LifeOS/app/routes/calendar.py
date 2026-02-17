@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.v2_models import Event, EventType, Medicine, MedicineLog
@@ -7,8 +8,12 @@ from app.utils.security import get_current_user
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import date, time, datetime
+import os, uuid as uuid_mod
 
 router = APIRouter()
+
+MED_PHOTO_DIR = os.path.join(os.path.dirname(__file__), "..", "uploads", "medicine_photos")
+os.makedirs(MED_PHOTO_DIR, exist_ok=True)
 
 # --- Pydantic Schemas ---
 
@@ -38,6 +43,7 @@ class MedicineOut(BaseModel):
     dosage: Optional[str] = None
     frequency: Optional[str] = None
     reminder_time: Optional[str] = None
+    photo_url: Optional[str] = None
     created_at: datetime
     taken_today: bool = False
 
@@ -125,22 +131,34 @@ def update_event(
 # --- Medicine Routes ---
 
 @router.post("/medicines", response_model=MedicineOut)
-def create_medicine(
-    medicine: MedicineCreate,
+async def create_medicine(
+    name: str = Form(...),
+    dosage: str = Form(None),
+    frequency: str = Form(None),
+    reminder_time: str = Form(None),
+    photo: UploadFile = File(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    photo_filename = None
+    if photo and photo.filename:
+        ext = photo.filename.rsplit(".", 1)[-1] if "." in photo.filename else "jpg"
+        photo_filename = f"{uuid_mod.uuid4()}.{ext}"
+        contents = await photo.read()
+        with open(os.path.join(MED_PHOTO_DIR, photo_filename), "wb") as f:
+            f.write(contents)
+
     new_medicine = Medicine(
         user_id=current_user.id,
-        name=medicine.name,
-        dosage=medicine.dosage,
-        frequency=medicine.frequency,
-        reminder_time=medicine.reminder_time
+        name=name,
+        dosage=dosage,
+        frequency=frequency,
+        reminder_time=reminder_time,
+        photo_url=photo_filename,
     )
     db.add(new_medicine)
     db.commit()
     db.refresh(new_medicine)
-    # Check if taken today
     today = date.today()
     taken_log = db.query(MedicineLog).filter(
         MedicineLog.medicine_id == new_medicine.id,
@@ -153,6 +171,7 @@ def create_medicine(
         "dosage": new_medicine.dosage,
         "frequency": new_medicine.frequency,
         "reminder_time": new_medicine.reminder_time,
+        "photo_url": new_medicine.photo_url,
         "created_at": new_medicine.created_at,
         "taken_today": bool(taken_log)
     }
@@ -177,6 +196,7 @@ def get_medicines(
             "dosage": m.dosage,
             "frequency": m.frequency,
             "reminder_time": m.reminder_time,
+            "photo_url": m.photo_url,
             "created_at": m.created_at,
             "taken_today": bool(taken_log)
         })
@@ -198,19 +218,45 @@ def delete_medicine(
     return {"detail": "Medicine deleted"}
 
 @router.put("/medicines/{med_id}", response_model=MedicineOut)
-def update_medicine(
+async def update_medicine(
     med_id: str,
-    med_data: MedicineCreate,
+    name: str = Form(...),
+    dosage: str = Form(None),
+    frequency: str = Form(None),
+    reminder_time: str = Form(None),
+    photo: UploadFile = File(None),
+    remove_photo: str = Form(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     med = db.query(Medicine).filter(Medicine.id == med_id, Medicine.user_id == current_user.id).first()
     if not med:
         raise HTTPException(status_code=404, detail="Medicine not found")
-    med.name = med_data.name
-    med.dosage = med_data.dosage
-    med.frequency = med_data.frequency
-    med.reminder_time = med_data.reminder_time
+    med.name = name
+    med.dosage = dosage
+    med.frequency = frequency
+    med.reminder_time = reminder_time
+
+    # Handle photo
+    if remove_photo == "true" and med.photo_url:
+        old_path = os.path.join(MED_PHOTO_DIR, med.photo_url)
+        if os.path.exists(old_path):
+            os.remove(old_path)
+        med.photo_url = None
+
+    if photo and photo.filename:
+        # Remove old photo if exists
+        if med.photo_url:
+            old_path = os.path.join(MED_PHOTO_DIR, med.photo_url)
+            if os.path.exists(old_path):
+                os.remove(old_path)
+        ext = photo.filename.rsplit(".", 1)[-1] if "." in photo.filename else "jpg"
+        photo_filename = f"{uuid_mod.uuid4()}.{ext}"
+        contents = await photo.read()
+        with open(os.path.join(MED_PHOTO_DIR, photo_filename), "wb") as f:
+            f.write(contents)
+        med.photo_url = photo_filename
+
     db.commit()
     db.refresh(med)
     today = date.today()
@@ -225,9 +271,17 @@ def update_medicine(
         "dosage": med.dosage,
         "frequency": med.frequency,
         "reminder_time": med.reminder_time,
+        "photo_url": med.photo_url,
         "created_at": med.created_at,
         "taken_today": bool(taken_log)
     }
+
+@router.get("/medicines/photo/{filename}")
+def get_medicine_photo(filename: str):
+    file_path = os.path.join(MED_PHOTO_DIR, filename)
+    if not os.path.exists(file_path):
+        raise HTTPException(404, "Photo not found")
+    return FileResponse(file_path)
 
 @router.get("/medicines/logs-by-date/{log_date}")
 def get_medicine_logs_by_date(

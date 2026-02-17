@@ -15,7 +15,17 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Email already registered")
     
     hashed_password = get_password_hash(user.password)
-    new_user = User(email=user.email, name=user.name, password_hash=hashed_password)
+    new_user = User(
+        email=user.email,
+        name=user.name,
+        password_hash=hashed_password,
+        phone=user.phone,
+        date_of_birth=user.date_of_birth,
+        gender=user.gender,
+        blood_group=user.blood_group,
+        height_cm=user.height_cm,
+        weight_kg=user.weight_kg,
+    )
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
