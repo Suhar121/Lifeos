@@ -1,0 +1,62 @@
+tunnel: 3a700200-428b-48cd-aba3-1e2fb7f51fd6
+credentials-file: /home/suhar/.cloudflared/3a700200-428b-48cd-aba3-1e2fb7f51fd6.json
+
+# Ingress rules - route traffic to your local services
+ingress:
+  # Route backend API requests
+  - hostname: lifebuddy.dpdns.org
+    path: /auth/*
+    service: http://localhost:8000
+  
+  - hostname: lifebuddy.dpdns.org
+    path: /daily-logs/*
+    service: http://localhost:8000
+  
+  - hostname: lifebuddy.dpdns.org
+    path: /habits/*
+    service: http://localhost:8000
+  
+  - hostname: lifebuddy.dpdns.org
+    path: /ai/*
+    service: http://localhost:8000
+  
+  - hostname: lifebuddy.dpdns.org
+    path: /calendar/*
+    service: http://localhost:8000
+  
+  - hostname: lifebuddy.dpdns.org
+    path: /life-score/*
+    service: http://localhost:8000
+  
+  - hostname: lifebuddy.dpdns.org
+    path: /care/*
+    service: http://localhost:8000
+  
+  - hostname: lifebuddy.dpdns.org
+    path: /push/*
+    service: http://localhost:8000
+  
+  - hostname: lifebuddy.dpdns.org
+    path: /profile/*
+    service: http://localhost:8000
+  
+  - hostname: lifebuddy.dpdns.org
+    path: /medical-reports/*
+    service: http://localhost:8000
+  
+  # Route documentation to backend
+  - hostname: lifebuddy.dpdns.org
+    path: /docs*
+    service: http://localhost:8000
+  
+  # Route all other traffic to frontend
+  - hostname: lifebuddy.dpdns.org
+    service: http://localhost:5173
+  
+  # Catch-all rule (required)
+  - service: http_status:404
+
+# Optional: Configure origin settings
+originRequest:
+  connectTimeout: 30s
+  noTLSVerify: false

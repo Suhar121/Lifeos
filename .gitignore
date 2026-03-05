@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+env/
+.env
+
+# Node
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Database
+*.sqlite
+*.db
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Virtual environments (including typos)
+app/vevn/
+
+# Uploads
+app/uploads/
+
+# Log files
+*.log
+
+# Docker
+docker-compose.override.yml
+
+# Firebase service account (sensitive)
+*firebase-adminsdk*.json
+firebase-service-account.json
+
+# Other
+.DS_Store
+.system_generated/
+frontend/node_modules/
+frontend/dist/

@@ -1,0 +1,47 @@
+# ============================================================
+# .dockerignore — keep the Docker build context small & safe
+# ============================================================
+
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.py[cod]
+venv/
+.venv/
+app/vevn/
+*.egg-info
+
+# Node (we install fresh inside the container)
+node_modules/
+frontend/node_modules/
+frontend/dist/
+
+# Environment / secrets
+.env
+*.env.local
+*firebase-adminsdk*.json
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs & uploads (runtime data, not needed in image)
+*.log
+app/uploads/
+
+# CI / docs
+.github/
+*.md
+Jenkinsfile
+test_output.txt
+
+# Database files
+*.sqlite
+*.db

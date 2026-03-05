@@ -1,0 +1,56 @@
+# ============================================================
+# LifeOS — Docker Compose
+# Usage:
+#   cp .env.example .env          # fill in real values
+#   docker compose up -d --build
+# ============================================================
+
+version: "3.9"
+
+services:
+  # ---- PostgreSQL ----
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-lifeos_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lifeos_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-lifeos_db}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-lifeos_user} -d ${POSTGRES_DB:-lifeos_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ---- Backend (FastAPI + Gunicorn) ----
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-}
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-lifeos_user}:${POSTGRES_PASSWORD:-lifeos_pass}@db:5432/${POSTGRES_DB:-lifeos_db}
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+      - "${FRONTEND_PORT:-5173}:5173"
+    volumes:
+      - uploads:/code/app/uploads
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/docs"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  pgdata:
+  uploads:
