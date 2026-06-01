@@ -1,4 +1,6 @@
-export default {
+import os
+
+tailwind_config = """export default {
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
@@ -36,3 +38,25 @@ export default {
   },
   plugins: [],
 }
+"""
+
+index_css = """@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-theme-bg text-theme-text font-sans antialiased;
+  }
+}
+"""
+
+with open('frontend/tailwind.config.js', 'w') as f:
+    f.write(tailwind_config)
+
+with open('frontend/src/index.css', 'w') as f:
+    f.write(index_css)
+
+print("Config and CSS updated")

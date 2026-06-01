@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import os
+
+code = """import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { Plus, X, Flame, Trash2, CheckCircle2 } from 'lucide-react';
 
@@ -230,3 +232,9 @@ const Habits = () => {
 };
 
 export default Habits;
+"""
+
+with open('frontend/src/pages/Habits.jsx', 'w') as f:
+    f.write(code)
+
+print("Habits rewritten!")

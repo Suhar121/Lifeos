@@ -11,6 +11,7 @@ import WeeklyReport from './pages/WeeklyReport';
 import HealthPage from './pages/HealthPage';
 import CarePage from './pages/CarePage';
 import ProfilePage from './pages/ProfilePage';
+import MedicalReportsPage from './pages/MedicalReportsPage';
 import Navbar from './components/Navbar';
 import { subscribeToPush, setupForegroundNotifications } from './services/pushNotifications';
 
@@ -22,8 +23,18 @@ const ProtectedRoute = ({ children }) => {
   return children;
 };
 
+const Layout = ({ children }) => {
+  return (
+    <div className="flex min-h-screen text-theme-text font-sans">
+      <Navbar />
+      <main className="flex-1 transition-all duration-300 md:ml-64 pb-24 md:pb-0">
+        {children}
+      </main>
+    </div>
+  );
+};
+
 function App() {
-  // Auto-subscribe to FCM push notifications and set up foreground handler
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
@@ -37,75 +48,21 @@ function App() {
 
   return (
     <Router>
-      <div className="min-h-screen bg-neutral-900 text-gray-100 font-sans pb-32 md:pb-0">
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          
-          <Route path="/" element={
-            <ProtectedRoute>
-              <Navbar />
-              <Dashboard />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/check-in" element={
-            <ProtectedRoute>
-              <Navbar />
-              <DailyCheckIn />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/habits" element={
-            <ProtectedRoute>
-              <Navbar />
-              <Habits />
-            </ProtectedRoute>
-          } />
-
-          <Route path="/calendar" element={
-            <ProtectedRoute>
-              <Navbar />
-              <CalendarPage />
-            </ProtectedRoute>
-          } />
-
-          <Route path="/report" element={
-            <ProtectedRoute>
-              <Navbar />
-              <WeeklyReport />
-            </ProtectedRoute>
-          } />
-
-          <Route path="/health" element={
-            <ProtectedRoute>
-              <Navbar />
-              <HealthPage />
-            </ProtectedRoute>
-          } />
-
-          <Route path="/insights" element={
-            <ProtectedRoute>
-              <Navbar />
-              <AIInsights />
-            </ProtectedRoute>
-          } />
-
-          <Route path="/care" element={
-            <ProtectedRoute>
-              <Navbar />
-              <CarePage />
-            </ProtectedRoute>
-          } />
-
-          <Route path="/profile" element={
-            <ProtectedRoute>
-              <Navbar />
-              <ProfilePage />
-            </ProtectedRoute>
-          } />
-        </Routes>
-      </div>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        
+        <Route path="/" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
+        <Route path="/check-in" element={<ProtectedRoute><Layout><DailyCheckIn /></Layout></ProtectedRoute>} />
+        <Route path="/habits" element={<ProtectedRoute><Layout><Habits /></Layout></ProtectedRoute>} />
+        <Route path="/calendar" element={<ProtectedRoute><Layout><CalendarPage /></Layout></ProtectedRoute>} />
+        <Route path="/report" element={<ProtectedRoute><Layout><WeeklyReport /></Layout></ProtectedRoute>} />
+        <Route path="/health" element={<ProtectedRoute><Layout><HealthPage /></Layout></ProtectedRoute>} />
+        <Route path="/insights" element={<ProtectedRoute><Layout><AIInsights /></Layout></ProtectedRoute>} />
+        <Route path="/care" element={<ProtectedRoute><Layout><CarePage /></Layout></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute><Layout><ProfilePage /></Layout></ProtectedRoute>} />
+        <Route path="/medical-reports" element={<ProtectedRoute><Layout><MedicalReportsPage /></Layout></ProtectedRoute>} />
+      </Routes>
     </Router>
   );
 }

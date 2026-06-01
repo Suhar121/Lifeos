@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 import os
 import logging
@@ -19,13 +20,41 @@ from app.services.notification_scheduler import start_scheduler
 logger = logging.getLogger("lifeos")
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Run startup tasks: migrations then scheduler."""
+    run_migrations()
+    start_scheduler()
+    yield
+    # shutdown — nothing to clean up
+
+
 def run_migrations():
-    """Run alembic migrations automatically on startup."""
+    """Run alembic migrations — skips automatically if DB is already at head."""
+    import sqlite3
     from alembic.config import Config
     from alembic import command
+    from alembic.script import ScriptDirectory
 
     alembic_ini = os.path.join(os.path.dirname(__file__), "alembic.ini")
     alembic_cfg = Config(alembic_ini)
+
+    # Determine the current head revision without opening SQLAlchemy
+    script = ScriptDirectory.from_config(alembic_cfg)
+    head_rev = script.get_current_head()
+
+    # Read current DB revision via a plain sqlite3 call (no pool, no locks)
+    db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "lifeos.db")
+    try:
+        raw = sqlite3.connect(db_path, timeout=5)
+        row = raw.execute("SELECT version_num FROM alembic_version LIMIT 1").fetchone()
+        raw.close()
+        if row and row[0] == head_rev:
+            logger.info(f"DB already at head ({head_rev}), skipping migration")
+            return
+    except Exception:
+        pass  # No alembic_version table yet — fall through to full upgrade
+
     try:
         command.upgrade(alembic_cfg, "head")
         logger.info("Database migrations applied successfully")
@@ -34,10 +63,7 @@ def run_migrations():
         raise
 
 
-# Run migrations before app starts
-run_migrations()
-
-app = FastAPI(title="LifeOS API", version="1.0.0")
+app = FastAPI(title="LifeOS API", version="1.0.0", lifespan=lifespan)
 
 # Global exception handler — ensures CORS headers are always sent and errors are logged
 @app.exception_handler(Exception)
@@ -50,17 +76,21 @@ async def global_exception_handler(request: Request, exc: Exception):
     )
 
 # CORS
-cors_origins_str = os.getenv(
-    "CORS_ORIGINS",
-    "http://localhost:5173,http://localhost:3000"
-)
+cors_origins_str = os.getenv("CORS_ORIGINS", "*")
 
-origins = [origin.strip() for origin in cors_origins_str.split(",")]
+# The app authenticates via Authorization Bearer header (JWT), not cookies,
+# so allow_credentials=False + allow_origins=["*"] is both safe and required
+# to satisfy Chrome's Private Network Access policy when the frontend is
+# served from a public IP but the backend is on loopback.
+if cors_origins_str.strip() == "*":
+    origins = ["*"]
+else:
+    origins = [o.strip() for o in cors_origins_str.split(",")]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -77,9 +107,6 @@ app.include_router(care.router, prefix="/care", tags=["Care"])
 app.include_router(push.router, prefix="/push", tags=["Push Notifications"])
 app.include_router(profile.router, prefix="/profile", tags=["Profile"])
 app.include_router(medical_reports.router, prefix="/medical-reports", tags=["Medical Reports"])
-
-# Start background push notification scheduler
-start_scheduler()
 
 @app.get("/")
 def read_root():

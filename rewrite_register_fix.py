@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import os
+
+register_code = """import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../services/api';
 import { ChevronDown, ChevronUp } from 'lucide-react';
@@ -69,3 +71,9 @@ const Register = () => {
 };
 
 export default Register;
+"""
+
+with open('frontend/src/pages/Register.jsx', 'w') as f:
+    f.write(register_code)
+
+print("Register page updated.")

@@ -39,36 +39,37 @@ const LifeScoreCircle = ({ score = 0, size = 180 }) => {
   return (
     <div className="flex flex-col items-center">
       <div className="relative" style={{ width: size, height: size }}>
+        {/* Subtle glow ring behind */}
+        <div className="absolute inset-0 rounded-full pointer-events-none"
+          style={{ boxShadow: `0 0 40px ${color}20`, borderRadius: '50%' }} />
+
         <svg width={size} height={size} className="transform -rotate-90">
-          {/* Background circle */}
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            stroke="#262626"
-            strokeWidth="10"
-            fill="none"
-          />
-          {/* Progress circle */}
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            stroke={color}
-            strokeWidth="10"
-            fill="none"
+          {/* Track */}
+          <circle cx={size/2} cy={size/2} r={radius}
+            stroke="var(--glass-bg)" strokeWidth="12" fill="none" />
+          {/* Background glow track */}
+          <circle cx={size/2} cy={size/2} r={radius}
+            stroke={color} strokeWidth="12" fill="none" opacity="0.08"
+            strokeDasharray={circumference} strokeDashoffset={0} />
+          {/* Progress */}
+          <circle cx={size/2} cy={size/2} r={radius}
+            stroke={color} strokeWidth="12" fill="none"
             strokeLinecap="round"
             strokeDasharray={circumference}
             strokeDashoffset={strokeDashoffset}
             style={{
               transition: 'stroke-dashoffset 0.5s ease-out, stroke 0.3s ease',
-              filter: `drop-shadow(0 0 8px ${color}40)`,
+              filter: `drop-shadow(0 0 10px ${color}80)`,
             }}
           />
         </svg>
+
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-4xl font-bold text-white">{animatedScore}</span>
-          <span className="text-xs text-gray-400 uppercase tracking-widest mt-1">
+          <span className="text-4xl font-extrabold text-theme-text tracking-tight" style={{ textShadow: `0 0 20px ${color}60` }}>
+            {animatedScore}
+          </span>
+          <span className="text-[10px] font-semibold uppercase tracking-widest mt-1"
+            style={{ color }}>
             {getScoreLabel(animatedScore)}
           </span>
         </div>

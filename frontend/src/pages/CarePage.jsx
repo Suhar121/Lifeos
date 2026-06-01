@@ -1,571 +1,443 @@
-import { useState, useEffect } from 'react';
-import api from '../services/api';
+import React, { useState, useEffect } from 'react';
 import {
-  Users, UserPlus, Mail, Heart, Shield, Check, X, Eye,
-  ChevronLeft, Pill, Calendar, Activity, Scale, Droplets,
-  Brain, Dumbbell, UtensilsCrossed, Sun, Moon
+  ShieldCheck, Users, Plus, Download, Lock, Search,
+  AlertTriangle, CheckCircle, ChevronLeft, ChevronRight,
+  MoreVertical, FileText, FlaskConical, Loader2, X, Send
 } from 'lucide-react';
+import api from '../services/api';
 
-const RELATIONSHIPS = [
-  { value: 'parent', label: '👨‍👩‍👧 Parent' },
-  { value: 'child', label: '👶 Child' },
-  { value: 'spouse', label: '💑 Spouse' },
-  { value: 'caretaker', label: '🏥 Caretaker' },
-  { value: 'friend', label: '🤝 Friend' },
-  { value: 'other', label: '👤 Other' },
-];
-
-const MOOD_EMOJI = {
-  great: '😄', good: '🙂', okay: '😐', bad: '😟', terrible: '😢'
+// ── Initials avatar ──
+const Avatar = ({ name = '', size = 'lg' }) => {
+  const chars = name.split(' ').map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || '?';
+  const colors = ['from-[#0d968b] to-[#065f46]', 'from-blue-500 to-blue-700', 'from-violet-500 to-violet-700', 'from-amber-500 to-orange-600'];
+  const idx = name.charCodeAt(0) % colors.length;
+  const sz = size === 'lg' ? 'w-24 h-24 text-2xl' : 'w-10 h-10 text-sm';
+  return (
+    <div className={`${sz} rounded-full bg-gradient-to-br ${colors[idx]} flex items-center justify-center text-white font-bold border-4 border-slate-50 dark:border-slate-800 shadow-md`}>
+      {chars}
+    </div>
+  );
 };
 
-export default function CarePage() {
-  const [tab, setTab] = useState('sharing');   // sharing | wards
-  const [myLinks, setMyLinks] = useState([]);
-  const [wards, setWards] = useState([]);
+// ── File icon by type ──
+const FileIcon = ({ type }) => {
+  if (type === 'pdf') return (
+    <div className="bg-red-50 dark:bg-red-900/30 p-2 rounded text-red-600 dark:text-red-400">
+      <FileText className="w-5 h-5" />
+    </div>
+  );
+  return (
+    <div className="bg-blue-50 dark:bg-blue-900/30 p-2 rounded text-blue-600 dark:text-blue-400">
+      <FlaskConical className="w-5 h-5" />
+    </div>
+  );
+};
+
+// ── format bytes ──
+const fmt = (bytes) => bytes ? (bytes > 1048576 ? `${(bytes / 1048576).toFixed(1)} MB` : `${(bytes / 1024).toFixed(0)} KB`) : '—';
+
+// ══════════════════════════════════════════════════════════════════
+const CarePage = () => {
+  const [wards, setWards] = useState([]);          // people sharing data with me
+  const [myLinks, setMyLinks] = useState([]);       // people I share data with
+  const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [reportPage, setReportPage] = useState(0);
+  const PAGE_SIZE = 5;
 
-  // Add form
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [email, setEmail] = useState('');
-  const [relationship, setRelationship] = useState('caretaker');
-  const [adding, setAdding] = useState(false);
+  // Add member modal
+  const [showModal, setShowModal] = useState(false);
+  const [addEmail, setAddEmail] = useState('');
+  const [addRelation, setAddRelation] = useState('Family Member');
+  const [addLoading, setAddLoading] = useState(false);
+  const [addError, setAddError] = useState('');
+  const [addSuccess, setAddSuccess] = useState('');
 
-  // Ward detail view
-  const [selectedWard, setSelectedWard] = useState(null);
-  const [wardSummary, setWardSummary] = useState(null);
-  const [wardHistory, setWardHistory] = useState(null);
-  const [loadingWard, setLoadingWard] = useState(false);
-  const [wardDate, setWardDate] = useState(new Date().toISOString().split('T')[0]);
+  // Search
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
-    fetchLinks();
+    Promise.all([
+      api.get('/care/wards').catch(() => ({ data: [] })),
+      api.get('/care/my-links').catch(() => ({ data: [] })),
+      api.get('/reports/').catch(() => ({ data: [] })),
+    ]).then(([w, l, r]) => {
+      setWards(w.data || []);
+      setMyLinks(l.data || []);
+      setReports(r.data || []);
+    }).finally(() => setLoading(false));
   }, []);
 
-  const fetchLinks = async () => {
-    setLoading(true);
-    try {
-      const [linksRes, wardsRes] = await Promise.all([
-        api.get('/care/my-links'),
-        api.get('/care/wards')
-      ]);
-      setMyLinks(linksRes.data);
-      setWards(wardsRes.data);
-    } catch (err) {
-      setError('Failed to load care links');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAddLink = async (e) => {
+  const handleAddMember = async (e) => {
     e.preventDefault();
-    setAdding(true);
-    setError('');
-    setSuccess('');
+    setAddLoading(true);
+    setAddError('');
+    setAddSuccess('');
     try {
-      await api.post('/care/link', {
-        caretaker_email: email,
-        relationship
-      });
-      setSuccess('Care link request sent!');
-      setEmail('');
-      setShowAddForm(false);
-      fetchLinks();
+      await api.post('/care/link', { caretaker_email: addEmail, relationship: addRelation });
+      setAddSuccess(`Invitation sent to ${addEmail}`);
+      setAddEmail('');
+      // Refresh links
+      const res = await api.get('/care/my-links');
+      setMyLinks(res.data || []);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to send care link request');
+      setAddError(err.response?.data?.detail || 'Failed to send invitation');
     } finally {
-      setAdding(false);
+      setAddLoading(false);
     }
   };
 
-  const handleRespond = async (linkId, status) => {
+  const handleRevokeLink = async (id) => {
     try {
-      await api.put(`/care/respond/${linkId}`, { status });
-      setSuccess(status === 'active' ? 'Care link accepted!' : 'Care link declined.');
-      fetchLinks();
-    } catch (err) {
-      setError('Failed to respond to request');
-    }
+      await api.delete(`/care/link/${id}`);
+      setMyLinks(prev => prev.filter(l => l.id !== id));
+    } catch { /* silent */ }
   };
 
-  const handleRemoveLink = async (linkId) => {
-    if (!confirm('Remove this care link?')) return;
+  const handleDownloadReport = async (report) => {
     try {
-      await api.delete(`/care/link/${linkId}`);
-      setSuccess('Care link removed');
-      fetchLinks();
-    } catch (err) {
-      setError('Failed to remove link');
-    }
+      const res = await api.get(`/reports/${report.id}/download`, { responseType: 'blob' });
+      const url = URL.createObjectURL(res.data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = report.file_name;
+      a.click();
+    } catch { /* silent */ }
   };
 
-  const viewWardDetail = async (ward) => {
-    setSelectedWard(ward);
-    setLoadingWard(true);
-    try {
-      const [summaryRes, historyRes] = await Promise.all([
-        api.get(`/care/ward/${ward.user_id}/summary?log_date=${wardDate}`),
-        api.get(`/care/ward/${ward.user_id}/history?days=7`)
-      ]);
-      setWardSummary(summaryRes.data);
-      setWardHistory(historyRes.data);
-    } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to load ward data');
-    } finally {
-      setLoadingWard(false);
-    }
-  };
+  // Combine all care network members for display cards
+  const allMembers = [
+    ...wards.map(w => ({ ...w, role: 'ward', displayName: w.user_name, email: w.user_email })),
+    ...myLinks.map(l => ({ ...l, role: 'caretaker', displayName: l.caretaker_name, email: l.caretaker_email })),
+  ];
 
-  const changeWardDate = async (newDate) => {
-    setWardDate(newDate);
-    if (selectedWard) {
-      setLoadingWard(true);
-      try {
-        const res = await api.get(`/care/ward/${selectedWard.user_id}/summary?log_date=${newDate}`);
-        setWardSummary(res.data);
-      } catch (err) {
-        setError('Failed to load data for that date');
-      } finally {
-        setLoadingWard(false);
-      }
-    }
-  };
+  // Filter reports by search
+  const filteredReports = reports.filter(r =>
+    !search || r.title.toLowerCase().includes(search.toLowerCase()) || (r.description || '').toLowerCase().includes(search.toLowerCase())
+  );
+  const pageReports = filteredReports.slice(reportPage * PAGE_SIZE, (reportPage + 1) * PAGE_SIZE);
+  const totalPages = Math.ceil(filteredReports.length / PAGE_SIZE);
 
-  // Clear messages after 4s
-  useEffect(() => {
-    if (success || error) {
-      const t = setTimeout(() => { setSuccess(''); setError(''); }, 4000);
-      return () => clearTimeout(t);
-    }
-  }, [success, error]);
+  return (
+    <div className="flex-1 overflow-y-auto bg-[#f6f8f8] dark:bg-[#102220] min-h-screen">
 
-  // --- Ward Detail View ---
-  if (selectedWard) {
-    return (
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <button
-          onClick={() => { setSelectedWard(null); setWardSummary(null); setWardHistory(null); }}
-          className="flex items-center gap-2 text-gray-400 hover:text-white mb-6 transition-colors"
-        >
-          <ChevronLeft size={20} /> Back to Care
-        </button>
-
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-white">{selectedWard.user_name}</h1>
-            <p className="text-gray-400 text-sm">{selectedWard.user_email}</p>
+      {/* ── Header ── */}
+      <header className="sticky top-0 z-10 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-8 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <ShieldCheck className="text-blue-700 dark:text-blue-400 w-5 h-5" />
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">Secure Family Care Portal</h2>
+        </div>
+        <div className="flex items-center gap-4">
+          {/* Search */}
+          <div className="relative hidden lg:block w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+            <input
+              value={search}
+              onChange={e => { setSearch(e.target.value); setReportPage(0); }}
+              className="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-full py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-[#0d968b] outline-none"
+              placeholder="Search records..."
+              type="text"
+            />
           </div>
-          <input
-            type="date"
-            value={wardDate}
-            onChange={(e) => changeWardDate(e.target.value)}
-            className="bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white text-sm"
-          />
+          {/* Add Member button */}
+          <button
+            onClick={() => setShowModal(true)}
+            className="flex items-center gap-2 bg-[#0d968b] text-white py-2 px-4 rounded-lg font-semibold text-sm hover:bg-[#0d968b]/90 transition-colors"
+          >
+            <Plus className="w-4 h-4" /> Add Member
+          </button>
+        </div>
+      </header>
+
+      <div className="max-w-6xl mx-auto p-8">
+
+        {/* ── Title ── */}
+        <div className="mb-10">
+          <h1 className="text-4xl font-black tracking-tight text-slate-900 dark:text-white mb-2">Circle of Care</h1>
+          <p className="text-slate-500 dark:text-slate-400 text-lg">Real-time health monitoring and encrypted data sharing for your inner circle.</p>
         </div>
 
-        {loadingWard ? (
-          <div className="text-center py-12 text-gray-500">Loading...</div>
-        ) : wardSummary ? (
-          <div className="space-y-6">
-            {/* Mood & Life Score */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <StatBox
-                icon={<span className="text-2xl">{MOOD_EMOJI[wardSummary.mood] || '❓'}</span>}
-                label="Mood"
-                value={wardSummary.mood ? wardSummary.mood.charAt(0).toUpperCase() + wardSummary.mood.slice(1) : 'No log'}
-              />
-              <StatBox
-                icon={<Activity size={20} className="text-indigo-400" />}
-                label="Life Score"
-                value={wardSummary.life_score ?? '—'}
-              />
-              <StatBox
-                icon={<Sun size={20} className="text-yellow-400" />}
-                label="Energy"
-                value={wardSummary.energy ? `${wardSummary.energy}/10` : '—'}
-              />
-              <StatBox
-                icon={<Moon size={20} className="text-blue-400" />}
-                label="Sleep"
-                value={wardSummary.sleep_hours ? `${wardSummary.sleep_hours}h` : '—'}
-              />
-            </div>
-
-            {/* Health Vitals */}
-            <div className="bg-neutral-800/50 rounded-xl border border-neutral-700/50 p-5">
-              <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
-                <Heart size={18} className="text-red-400" /> Health Vitals
-              </h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <VitalCard label="Weight" value={wardSummary.weight} unit="kg" icon={<Scale size={16} />} color="text-green-400" />
-                <VitalCard
-                  label="Blood Pressure"
-                  value={wardSummary.bp_systolic && wardSummary.bp_diastolic ? `${wardSummary.bp_systolic}/${wardSummary.bp_diastolic}` : null}
-                  unit="mmHg"
-                  icon={<Activity size={16} />}
-                  color="text-red-400"
-                />
-                <VitalCard label="Blood Sugar" value={wardSummary.blood_sugar} unit="mg/dL" icon={<Droplets size={16} />} color="text-purple-400" />
-                <VitalCard label="Heart Rate" value={wardSummary.heart_rate} unit="bpm" icon={<Heart size={16} />} color="text-pink-400" />
-              </div>
-              <div className="grid grid-cols-2 gap-4 mt-4">
-                <div className={`flex items-center gap-2 p-3 rounded-lg ${wardSummary.workout ? 'bg-green-500/10 text-green-400' : 'bg-neutral-700/30 text-gray-500'}`}>
-                  <Dumbbell size={16} />
-                  <span className="text-sm font-medium">{wardSummary.workout ? '✅ Worked out' : '❌ No workout'}</span>
-                </div>
-                <div className={`flex items-center gap-2 p-3 rounded-lg ${wardSummary.junk_food ? 'bg-red-500/10 text-red-400' : 'bg-green-500/10 text-green-400'}`}>
-                  <UtensilsCrossed size={16} />
-                  <span className="text-sm font-medium">{wardSummary.junk_food ? '🍔 Had junk food' : '🥗 No junk food'}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Medicines */}
-            <div className="bg-neutral-800/50 rounded-xl border border-neutral-700/50 p-5">
-              <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
-                <Pill size={18} className="text-blue-400" /> Medicines
-              </h3>
-              {wardSummary.medicines.length === 0 ? (
-                <p className="text-gray-500 text-sm">No medicines configured</p>
-              ) : (
-                <div className="space-y-2">
-                  {wardSummary.medicines.map((med, i) => (
-                    <div key={i} className={`flex items-center justify-between p-3 rounded-lg border ${
-                      med.taken
-                        ? 'bg-green-500/10 border-green-500/30'
-                        : 'bg-red-500/10 border-red-500/30'
-                    }`}>
-                      <div>
-                        <span className="text-white font-medium">{med.medicine_name}</span>
-                        {med.dosage && <span className="text-gray-400 text-sm ml-2">({med.dosage})</span>}
-                        {med.reminder_time && <span className="text-gray-500 text-xs ml-2">⏰ {med.reminder_time}</span>}
-                      </div>
-                      <span className={`text-sm font-bold ${med.taken ? 'text-green-400' : 'text-red-400'}`}>
-                        {med.taken ? '✅ Taken' : '❌ Missed'}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Events */}
-            <div className="bg-neutral-800/50 rounded-xl border border-neutral-700/50 p-5">
-              <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
-                <Calendar size={18} className="text-amber-400" /> Events
-              </h3>
-              {wardSummary.events.length === 0 ? (
-                <p className="text-gray-500 text-sm">No events for this day</p>
-              ) : (
-                <div className="space-y-2">
-                  {wardSummary.events.map((ev, i) => (
-                    <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-neutral-700/30 border border-neutral-600/30">
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: ev.color || '#6366f1' }} />
-                        <span className="text-white">{ev.title}</span>
-                      </div>
-                      <div className="flex items-center gap-3 text-sm text-gray-400">
-                        <span className="capitalize">{ev.type}</span>
-                        {ev.time && <span>🕐 {ev.time}</span>}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* 7-Day History */}
-            {wardHistory && (
-              <div className="bg-neutral-800/50 rounded-xl border border-neutral-700/50 p-5">
-                <h3 className="text-white font-semibold mb-4">📊 Last 7 Days</h3>
-                <div className="grid grid-cols-7 gap-2">
-                  {wardHistory.days.map((day, i) => {
-                    const d = new Date(day.date);
-                    const dayLabel = d.toLocaleDateString('en', { weekday: 'short' });
-                    const allMedsTaken = day.medicines.length > 0 && day.medicines.every(m => m.taken);
-                    const someMedsTaken = day.medicines.some(m => m.taken);
-                    return (
-                      <div
-                        key={i}
-                        className={`rounded-lg p-2 text-center text-xs border ${
-                          day.has_log
-                            ? 'bg-indigo-500/10 border-indigo-500/30'
-                            : 'bg-neutral-700/20 border-neutral-600/20'
-                        }`}
-                      >
-                        <div className="text-gray-400 font-bold">{dayLabel}</div>
-                        <div className="text-lg mt-1">{day.mood ? (MOOD_EMOJI[day.mood] || '❓') : '—'}</div>
-                        <div className="mt-1">
-                          {day.has_log && (
-                            <span className="text-indigo-300">{day.life_score ?? '—'}</span>
-                          )}
-                        </div>
-                        <div className="mt-1 text-[10px]">
-                          {day.medicines.length > 0 ? (
-                            allMedsTaken ? (
-                              <span className="text-green-400">💊✓</span>
-                            ) : someMedsTaken ? (
-                              <span className="text-yellow-400">💊~</span>
-                            ) : (
-                              <span className="text-red-400">💊✗</span>
-                            )
-                          ) : null}
-                          {day.workout && <span className="ml-1 text-green-400">💪</span>}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
+        {/* ── Member Cards Grid ── */}
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="w-8 h-8 animate-spin text-[#0d968b]" />
           </div>
         ) : (
-          <div className="text-center py-12 text-gray-500">No data available for this date</div>
-        )}
-      </div>
-    );
-  }
-
-  // --- Main Care Page ---
-  return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-pink-500 to-rose-600 rounded-xl flex items-center justify-center">
-              <Users size={22} className="text-white" />
-            </div>
-            Care
-          </h1>
-          <p className="text-gray-400 mt-1">Share health data with family & caretakers</p>
-        </div>
-        <button
-          onClick={() => setShowAddForm(!showAddForm)}
-          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition-colors"
-        >
-          <UserPlus size={16} />
-          Add Caretaker
-        </button>
-      </div>
-
-      {/* Messages */}
-      {error && (
-        <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-xl mb-4 text-sm">{error}</div>
-      )}
-      {success && (
-        <div className="bg-green-500/10 border border-green-500/30 text-green-400 px-4 py-3 rounded-xl mb-4 text-sm">{success}</div>
-      )}
-
-      {/* Add Caretaker Form */}
-      {showAddForm && (
-        <form onSubmit={handleAddLink} className="bg-neutral-800/50 rounded-xl border border-neutral-700/50 p-5 mb-6">
-          <h3 className="text-white font-semibold mb-4">Share your data with someone</h3>
-          <div className="grid md:grid-cols-3 gap-4">
-            <div className="md:col-span-1">
-              <label className="text-gray-400 text-sm mb-1 block">Their Email</label>
-              <div className="relative">
-                <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="user@example.com"
-                  className="w-full bg-neutral-700/50 border border-neutral-600 rounded-lg pl-10 pr-3 py-2.5 text-white placeholder-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+            {allMembers.length === 0 && (
+              <div className="col-span-full text-center py-10 text-slate-400 text-sm">
+                No care connections yet. Add a member to get started.
               </div>
-            </div>
-            <div>
-              <label className="text-gray-400 text-sm mb-1 block">Relationship</label>
-              <select
-                value={relationship}
-                onChange={(e) => setRelationship(e.target.value)}
-                className="w-full bg-neutral-700/50 border border-neutral-600 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                {RELATIONSHIPS.map(r => (
-                  <option key={r.value} value={r.value}>{r.label}</option>
-                ))}
-              </select>
-            </div>
-            <div className="flex items-end">
-              <button
-                type="submit"
-                disabled={adding}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
-              >
-                {adding ? 'Sending...' : 'Send Request'}
-              </button>
-            </div>
-          </div>
-          <p className="text-gray-500 text-xs mt-3">
-            The other user must have a LifeOS account. They'll need to accept before they can see your data.
-          </p>
-        </form>
-      )}
+            )}
 
-      {/* Tabs */}
-      <div className="flex gap-1 bg-neutral-800/50 rounded-xl p-1 mb-6 border border-neutral-700/50">
-        <button
-          onClick={() => setTab('sharing')}
-          className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-            tab === 'sharing' ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:text-white'
-          }`}
-        >
-          <Shield size={14} className="inline mr-1.5" />
-          I'm Sharing With ({myLinks.length})
-        </button>
-        <button
-          onClick={() => setTab('wards')}
-          className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-            tab === 'wards' ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:text-white'
-          }`}
-        >
-          <Eye size={14} className="inline mr-1.5" />
-          I'm Caring For ({wards.filter(w => w.status === 'active').length})
-          {wards.filter(w => w.status === 'pending').length > 0 && (
-            <span className="ml-1.5 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">
-              {wards.filter(w => w.status === 'pending').length}
-            </span>
-          )}
-        </button>
-      </div>
+            {allMembers.map(member => {
+              const isAlert = member.status === 'pending';
+              return (
+                <div
+                  key={member.id}
+                  className={`bg-white dark:bg-slate-900 rounded-xl p-6 shadow-sm relative overflow-hidden group transition-transform hover:scale-[0.99] ${
+                    isAlert
+                      ? 'border-2 border-red-200 dark:border-red-900/30 border-l-[#1a5e9e] border-l-4'
+                      : 'border border-slate-200 dark:border-slate-800'
+                  }`}
+                >
+                  {/* Ping for alert */}
+                  {isAlert && (
+                    <div className="absolute top-3 right-3">
+                      <span className="flex h-3 w-3 relative">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+                      </span>
+                    </div>
+                  )}
 
-      {loading ? (
-        <div className="text-center py-12 text-gray-500">Loading...</div>
-      ) : tab === 'sharing' ? (
-        /* My Links - People I'm sharing with */
-        <div className="space-y-3">
-          {myLinks.length === 0 ? (
-            <div className="text-center py-12 bg-neutral-800/30 rounded-xl border border-neutral-700/30">
-              <Shield size={40} className="mx-auto text-gray-600 mb-3" />
-              <p className="text-gray-500">You haven't shared your data with anyone yet</p>
-              <p className="text-gray-600 text-sm mt-1">Tap "Add Caretaker" to share with a family member</p>
-            </div>
-          ) : (
-            myLinks.map(link => (
-              <div key={link.id} className="bg-neutral-800/50 rounded-xl border border-neutral-700/50 p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-indigo-500/20 rounded-full flex items-center justify-center">
-                    <span className="text-lg">{RELATIONSHIPS.find(r => r.value === link.relationship)?.label.split(' ')[0] || '👤'}</span>
+                  {/* BG decor */}
+                  <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity pointer-events-none">
+                    <Users className="w-16 h-16 text-[#0d968b]" />
                   </div>
-                  <div>
-                    <p className="text-white font-medium">{link.caretaker_name}</p>
-                    <p className="text-gray-500 text-sm">{link.caretaker_email}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-                    link.status === 'active' ? 'bg-green-500/20 text-green-400' :
-                    link.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
-                    'bg-gray-500/20 text-gray-400'
-                  }`}>
-                    {link.status === 'active' ? '✅ Active' : link.status === 'pending' ? '⏳ Pending' : link.status}
-                  </span>
-                  <button
-                    onClick={() => handleRemoveLink(link.id)}
-                    className="text-gray-500 hover:text-red-400 transition-colors p-1"
-                    title="Remove"
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      ) : (
-        /* Wards - People sharing with me */
-        <div className="space-y-3">
-          {wards.length === 0 ? (
-            <div className="text-center py-12 bg-neutral-800/30 rounded-xl border border-neutral-700/30">
-              <Eye size={40} className="mx-auto text-gray-600 mb-3" />
-              <p className="text-gray-500">No one is sharing their data with you yet</p>
-              <p className="text-gray-600 text-sm mt-1">Ask a loved one to add your email as their caretaker</p>
-            </div>
-          ) : (
-            wards.map(ward => (
-              <div key={ward.id} className="bg-neutral-800/50 rounded-xl border border-neutral-700/50 p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-pink-500/20 rounded-full flex items-center justify-center">
-                      <span className="text-lg">{RELATIONSHIPS.find(r => r.value === ward.relationship)?.label.split(' ')[0] || '👤'}</span>
+
+                  <div className="flex flex-col items-center">
+                    <Avatar name={member.displayName} size="lg" />
+
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-white mt-4">
+                      {member.displayName}
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-0.5">{member.email}</p>
+
+                    {/* Status badge */}
+                    <div className={`mt-2 flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${
+                      isAlert
+                        ? 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30'
+                        : 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30'
+                    }`}>
+                      {isAlert ? <AlertTriangle className="w-3 h-3" /> : <CheckCircle className="w-3 h-3" />}
+                      {isAlert ? 'Pending Approval' : 'Connected'}
                     </div>
-                    <div>
-                      <p className="text-white font-medium">{ward.user_name}</p>
-                      <p className="text-gray-500 text-sm">{ward.user_email}</p>
+
+                    <p className="mt-4 text-slate-500 text-sm capitalize">
+                      {member.relationship} • {member.role === 'ward' ? 'Sharing with you' : 'You invite'}
+                    </p>
+
+                    {/* Mini stats */}
+                    <div className="mt-6 w-full grid grid-cols-2 gap-3">
+                      <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg text-center">
+                        <p className="text-[10px] uppercase font-bold text-slate-400">Role</p>
+                        <p className="text-sm font-bold text-slate-700 dark:text-slate-300 capitalize">{member.relationship}</p>
+                      </div>
+                      <div className={`p-3 rounded-lg text-center ${isAlert ? 'bg-amber-50 dark:bg-amber-900/20' : 'bg-emerald-50 dark:bg-emerald-900/20'}`}>
+                        <p className="text-[10px] uppercase font-bold text-slate-400">Status</p>
+                        <p className={`text-sm font-bold capitalize ${isAlert ? 'text-amber-600' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                          {member.status}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {ward.status === 'pending' ? (
-                      <>
-                        <button
-                          onClick={() => handleRespond(ward.id, 'active')}
-                          className="flex items-center gap-1 bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
-                        >
-                          <Check size={14} /> Accept
-                        </button>
-                        <button
-                          onClick={() => handleRespond(ward.id, 'declined')}
-                          className="flex items-center gap-1 bg-red-600/20 hover:bg-red-600/40 text-red-400 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
-                        >
-                          <X size={14} /> Decline
-                        </button>
-                      </>
-                    ) : ward.status === 'active' ? (
-                      <>
-                        <button
-                          onClick={() => viewWardDetail(ward)}
-                          className="flex items-center gap-1 bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
-                        >
-                          <Eye size={14} /> View Health
-                        </button>
-                        <button
-                          onClick={() => handleRemoveLink(ward.id)}
-                          className="text-gray-500 hover:text-red-400 transition-colors p-1"
-                          title="Remove"
-                        >
-                          <X size={16} />
-                        </button>
-                      </>
-                    ) : (
-                      <span className="text-gray-500 text-sm">{ward.status}</span>
+
+                    {/* Actions */}
+                    {member.role === 'caretaker' && (
+                      <button
+                        onClick={() => handleRevokeLink(member.id)}
+                        className="mt-5 w-full py-2 text-slate-500 hover:text-red-500 hover:border-red-200 rounded-lg text-sm font-bold border border-slate-200 dark:border-slate-700 transition-all"
+                      >
+                        Revoke Access
+                      </button>
                     )}
                   </div>
                 </div>
+              );
+            })}
+
+            {/* Invite placeholder card */}
+            <div
+              onClick={() => setShowModal(true)}
+              className="bg-slate-50/50 dark:bg-slate-800/20 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:border-[#0d968b] hover:bg-[#0d968b]/5 transition-all group"
+            >
+              <div className="w-16 h-16 bg-white dark:bg-slate-800 rounded-full flex items-center justify-center mb-4 text-slate-300 dark:text-slate-600 shadow-sm group-hover:text-[#0d968b] group-hover:bg-[#0d968b]/10 transition-all">
+                <Plus className="w-8 h-8" />
               </div>
-            ))
-          )}
+              <h3 className="text-lg font-bold text-slate-400 dark:text-slate-500 group-hover:text-[#0d968b]">Monitor Member</h3>
+              <p className="text-slate-400 dark:text-slate-500 text-sm px-4 mt-1">Add a new family member to track their health metrics.</p>
+            </div>
+          </div>
+        )}
+
+        {/* ── Shared Documents ── */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2">
+              <Users className="text-blue-700 dark:text-blue-400 w-5 h-5" />
+              <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Shared Documents</h2>
+            </div>
+            <button className="text-[#0d968b] hover:underline text-sm font-bold flex items-center gap-1">
+              View All Records <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+            <table className="w-full text-left">
+              <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
+                <tr>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Document Name</th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest hidden md:table-cell">Description</th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest hidden lg:table-cell">Date</th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest text-right">Access</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {loading ? (
+                  <tr><td colSpan={4} className="px-6 py-10 text-center text-slate-400 text-sm"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></td></tr>
+                ) : pageReports.length === 0 ? (
+                  <tr><td colSpan={4} className="px-6 py-10 text-center text-slate-400 text-sm">No documents found.</td></tr>
+                ) : pageReports.map(report => (
+                  <tr key={report.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <FileIcon type={report.file_type} />
+                        <div>
+                          <p className="font-bold text-sm text-slate-700 dark:text-slate-300">{report.file_name || report.title}</p>
+                          <p className="text-xs text-slate-400">{fmt(report.file_size)} • {report.file_type === 'pdf' ? 'Medical Record' : 'Document'}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400 hidden md:table-cell max-w-[160px] truncate">
+                      {report.description || report.title}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400 hidden lg:table-cell">
+                      {report.report_date ? new Date(report.report_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <button
+                        onClick={() => handleDownloadReport(report)}
+                        className="text-[#0d968b] hover:bg-[#0d968b]/10 p-2 rounded-lg transition-colors"
+                      >
+                        <Download className="w-5 h-5" />
+                      </button>
+                      <button className="text-slate-400 hover:text-slate-600 p-2 rounded-lg transition-colors ml-1">
+                        <MoreVertical className="w-5 h-5" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {/* Table footer */}
+            <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800/30 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+              <p className="text-xs font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-2 uppercase tracking-widest">
+                <Lock className="w-4 h-4" /> AES-256 Encrypted Documents
+              </p>
+              {totalPages > 1 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-500">Page {reportPage + 1} of {totalPages}</span>
+                  <div className="flex gap-1">
+                    <button
+                      disabled={reportPage === 0}
+                      onClick={() => setReportPage(p => Math.max(0, p - 1))}
+                      className="p-1 text-slate-400 hover:text-slate-600 disabled:opacity-30"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <button
+                      disabled={reportPage >= totalPages - 1}
+                      onClick={() => setReportPage(p => Math.min(totalPages - 1, p + 1))}
+                      className="p-1 text-slate-400 hover:text-slate-600 disabled:opacity-30"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Add Member Modal ── */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md border border-slate-200 dark:border-slate-800 overflow-hidden">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-[#0d968b]/10 rounded-lg text-[#0d968b]">
+                  <Users className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 dark:text-white">Add Care Member</h3>
+                  <p className="text-xs text-slate-400">Invite someone to your Circle of Care</p>
+                </div>
+              </div>
+              <button onClick={() => { setShowModal(false); setAddError(''); setAddSuccess(''); }} className="text-slate-400 hover:text-slate-600 p-1">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <form onSubmit={handleAddMember} className="p-6 space-y-4">
+              {addError && (
+                <div className="flex items-start gap-2 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl text-sm border border-red-100 dark:border-red-900/30">
+                  <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" /> {addError}
+                </div>
+              )}
+              {addSuccess && (
+                <div className="flex items-start gap-2 p-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-xl text-sm border border-emerald-100 dark:border-emerald-900/30">
+                  <CheckCircle className="w-4 h-4 mt-0.5 shrink-0" /> {addSuccess}
+                </div>
+              )}
+
+              <div>
+                <label className="text-[10px] uppercase font-bold text-slate-400 block mb-2">Member's LifeOS Email</label>
+                <input
+                  type="email"
+                  value={addEmail}
+                  onChange={e => setAddEmail(e.target.value)}
+                  required
+                  placeholder="member@example.com"
+                  className="w-full border border-slate-200 dark:border-slate-700 dark:bg-slate-800 rounded-xl py-3 px-4 text-sm focus:border-[#0d968b] focus:ring-1 focus:ring-[#0d968b] outline-none transition-all dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] uppercase font-bold text-slate-400 block mb-2">Relationship</label>
+                <select
+                  value={addRelation}
+                  onChange={e => setAddRelation(e.target.value)}
+                  className="w-full border border-slate-200 dark:border-slate-700 dark:bg-slate-800 rounded-xl py-3 px-4 text-sm focus:border-[#0d968b] focus:ring-1 focus:ring-[#0d968b] outline-none transition-all dark:text-white"
+                >
+                  {['Family Member', 'Spouse', 'Parent', 'Child', 'Sibling', 'Caregiver', 'Physician', 'Other'].map(r => (
+                    <option key={r}>{r}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="p-4 bg-[#0d968b]/5 rounded-xl border border-[#0d968b]/10">
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                  <span className="font-bold text-[#0d968b]">Note:</span> The invited person must already have a LifeOS account. They will receive a notification to approve access.
+                </p>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="submit"
+                  disabled={addLoading}
+                  className="flex-1 py-3 bg-[#0d968b] text-white text-sm font-bold rounded-xl hover:bg-[#0b857b] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {addLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  {addLoading ? 'Sending...' : 'Send Invitation'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setShowModal(false); setAddError(''); setAddSuccess(''); }}
+                  className="flex-1 py-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-sm font-bold rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>
   );
-}
+};
 
-// Helper components
-function StatBox({ icon, label, value }) {
-  return (
-    <div className="bg-neutral-800/50 rounded-xl border border-neutral-700/50 p-4 text-center">
-      <div className="flex justify-center mb-2">{icon}</div>
-      <p className="text-gray-400 text-xs uppercase tracking-wider">{label}</p>
-      <p className="text-white font-bold text-lg mt-1">{value}</p>
-    </div>
-  );
-}
-
-function VitalCard({ label, value, unit, icon, color }) {
-  return (
-    <div className="bg-neutral-700/30 rounded-lg p-3">
-      <div className={`flex items-center gap-1.5 text-sm ${color} mb-1`}>
-        {icon}
-        <span className="font-medium">{label}</span>
-      </div>
-      <p className="text-white font-bold text-lg">
-        {value ?? '—'}
-        {value && <span className="text-gray-500 text-xs ml-1">{unit}</span>}
-      </p>
-    </div>
-  );
-}
+export default CarePage;

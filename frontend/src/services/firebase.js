@@ -1,6 +1,6 @@
 // Firebase configuration and initialization
 import { initializeApp } from 'firebase/app';
-import { getMessaging, getToken, onMessage } from 'firebase/messaging';
+import { getMessaging, getToken, onMessage, isSupported } from 'firebase/messaging';
 
 const firebaseConfig = {
   apiKey: "AIzaSyA-2AC3-jdiiTFYomIqj8N4h8Obuwz3lKs",
@@ -15,13 +15,22 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firebase Cloud Messaging
+// Initialize Firebase Cloud Messaging — only if the browser supports it
+// isSupported() checks for ServiceWorker, PushManager, IndexedDB, and Notification API
 let messaging = null;
-try {
-  messaging = getMessaging(app);
-} catch (err) {
-  console.warn('Firebase Messaging not supported in this browser:', err);
-}
+let _messagingReady = isSupported().then((supported) => {
+  if (supported) {
+    try {
+      messaging = getMessaging(app);
+    } catch (err) {
+      console.warn('Firebase Messaging init failed:', err);
+    }
+  } else {
+    console.warn('Firebase Messaging: browser does not support required APIs (Push/SW/IDB)');
+  }
+}).catch((err) => {
+  console.warn('Firebase isSupported() check failed:', err);
+});
 
 // VAPID key from Firebase Console -> Project Settings -> Cloud Messaging -> Web Push certificates
 const VAPID_KEY = 'BO58Owzq5cFjEDz591GUsoRIQ4oSnkWkDaRL1M3ND23hSuAn11ZEiOJaui9SHFAjJYkpEYIPquxewxFfzxgXYpE';
@@ -32,8 +41,10 @@ const VAPID_KEY = 'BO58Owzq5cFjEDz591GUsoRIQ4oSnkWkDaRL1M3ND23hSuAn11ZEiOJaui9SH
  */
 export async function requestFCMToken() {
   console.log('[FCM] Step 1: Checking messaging support...');
+  // Wait for the async isSupported() check to complete
+  await _messagingReady;
   if (!messaging) {
-    console.warn('[FCM] FAILED: Firebase Messaging not available');
+    console.warn('[FCM] FAILED: Firebase Messaging not available in this browser');
     return null;
   }
 
@@ -94,7 +105,8 @@ export async function requestFCMToken() {
  * Listen for foreground messages.
  * Call this once in your App component to handle notifications when the app is open.
  */
-export function onForegroundMessage(callback) {
+export async function onForegroundMessage(callback) {
+  await _messagingReady;
   if (!messaging) return () => {};
 
   return onMessage(messaging, (payload) => {

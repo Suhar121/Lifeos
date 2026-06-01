@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import os
+
+code = """import React, { useState } from 'react';
 import api from '../services/api';
 import { Sparkles, Brain, ArrowRight, Activity, ArrowUp, Send } from 'lucide-react';
 
@@ -105,3 +107,9 @@ const AIInsights = () => {
 };
 
 export default AIInsights;
+"""
+
+with open('frontend/src/pages/AIInsights.jsx', 'w') as f:
+    f.write(code)
+
+print("AI Insights rewritten!")

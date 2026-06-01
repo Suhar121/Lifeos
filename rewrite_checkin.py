@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import os
+
+code = """import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { Check, Activity } from 'lucide-react';
@@ -188,3 +190,9 @@ const DailyCheckIn = () => {
 };
 
 export default DailyCheckIn;
+"""
+
+with open('frontend/src/pages/DailyCheckIn.jsx', 'w') as f:
+    f.write(code)
+
+print("Check-In rewritten!")

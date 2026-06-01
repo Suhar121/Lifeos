@@ -1,7 +1,11 @@
 import axios from 'axios';
 
+// Route all API calls through Vite's dev-server proxy (/api -> localhost:8000).
+// This works both on localhost and when the frontend is served behind a tunnel
+// (Cloudflare, ngrok, etc.) — the browser never tries to reach port 8000 directly.
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000',
+  baseURL: '/api',
+  timeout: 15000, // 15 second timeout — prevents infinite "Signing In..." hangs
 });
 
 // Add a request interceptor to include the JWT token

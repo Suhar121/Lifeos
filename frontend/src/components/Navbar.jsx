@@ -1,143 +1,110 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Activity, BarChart2, CheckSquare, Sparkles, PlusCircle, Calendar, FileBarChart, HeartPulse, Users, UserCircle } from 'lucide-react';
-import api from '../services/api';
+import React from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
+import { Home, CalendarPlus, Activity, ShieldPlus, UserCircle, Menu, LogOut, PieChart, ClipboardList } from 'lucide-react';
+import ThemeToggle from './ThemeToggle';
 
 const Navbar = () => {
   const location = useLocation();
-  const [profilePhoto, setProfilePhoto] = useState(null);
-  const [userName, setUserName] = useState('');
 
-  useEffect(() => {
-    api.get('/profile/').then(({ data }) => {
-      setProfilePhoto(data.profile_photo_url);
-      setUserName(data.name || '');
-    }).catch(() => {});
-  }, []);
-
-  const getPhotoUrl = () => {
-    if (!profilePhoto) return null;
-    const base = api.defaults.baseURL || '';
-    return `${base}${profilePhoto}`;
-  };
-
-  const ProfileAvatar = ({ size = 24 }) => {
-    const photoUrl = getPhotoUrl();
-    if (photoUrl) {
-      return <img src={photoUrl} alt="Profile" className="w-full h-full object-cover rounded-full" />;
-    }
-    if (userName) {
-      return <span className="text-xs font-bold text-white">{userName.charAt(0).toUpperCase()}</span>;
-    }
-    return <UserCircle size={size} className={location.pathname === '/profile' ? 'text-indigo-400' : 'text-gray-400'} />;
-  };
-
-  const NavItem = ({ to, icon: Icon, label }) => {
-    const isActive = location.pathname === to;
-    return (
-      <Link
-        to={to}
-        className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-all text-sm ${
-          isActive 
-            ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' 
-            : 'text-gray-400 hover:text-white hover:bg-neutral-800'
-        }`}
-      >
-        <Icon size={18} />
-        <span className="font-medium">{label}</span>
-      </Link>
-    );
-  };
-
-  const MobileNavItem = ({ to, icon: Icon, label }) => {
-    const isActive = location.pathname === to;
-    return (
-      <Link
-        to={to}
-        className={`flex flex-col items-center justify-center space-y-1 px-3 py-1 transition-all relative ${
-          isActive ? 'text-indigo-400 font-semibold scale-105' : 'text-gray-500 hover:text-white'
-        }`}
-      >
-        <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
-        <span className="text-[9px] uppercase tracking-wider font-bold">{label}</span>
-        {isActive && (
-          <div className="absolute -top-1.5 w-1 h-1 bg-indigo-500 rounded-full shadow-[0_0_8px_rgba(99,102,241,0.8)]" />
-        )}
-      </Link>
-    );
-  };
-
+  const links = [
+    { to: '/', icon: <Home size={20} />, label: 'Home' },
+    { to: '/check-in', icon: <CalendarPlus size={20} />, label: 'Log' },
+    { to: '/health', icon: <Activity size={20} />, label: 'Vitals' },
+    { to: '/care', icon: <ShieldPlus size={20} />, label: 'Care' },
+    { to: '/profile', icon: <UserCircle size={20} />, label: 'Profile' },
+  ];
 
   return (
     <>
-      <nav className="bg-neutral-900/80 backdrop-blur-md border-b border-neutral-800 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center">
-              <Link to="/" className="flex items-center space-x-2 text-white font-bold text-xl">
-                <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
-                  <Activity size={20} className="text-white" />
-                </div>
-                <span className="tracking-tight">LifeOS</span>
-                <span className="text-[10px] font-normal text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded">v2</span>
-              </Link>
-            </div>
-            
-            <div className="hidden md:flex items-center space-x-1">
-              <NavItem to="/" icon={BarChart2} label="Dashboard" />
-              <NavItem to="/check-in" icon={PlusCircle} label="Check-In" />
-              <NavItem to="/health" icon={HeartPulse} label="Vitals" />
-              <NavItem to="/habits" icon={CheckSquare} label="Habits" />
-              <NavItem to="/calendar" icon={Calendar} label="Calendar" />
-              <NavItem to="/report" icon={FileBarChart} label="Report" />
-              <NavItem to="/care" icon={Users} label="Care" />
-              <NavItem to="/insights" icon={Sparkles} label="AI" />
-            </div>
-
-            <div className="flex items-center">
-              <Link
-                to="/profile"
-                className={`rounded-full transition-all ring-2 overflow-hidden w-9 h-9 flex items-center justify-center ${
-                  location.pathname === '/profile'
-                    ? 'ring-indigo-500 bg-indigo-600/20'
-                    : 'ring-neutral-600 hover:ring-indigo-400 bg-neutral-700'
-                }`}
-                title="Profile"
-              >
-                <ProfileAvatar size={22} />
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      {/* Bottom Navigation for Mobile */}
-      <div className="md:hidden fixed bottom-[max(1rem,env(safe-area-inset-bottom,1rem))] left-1/2 -translate-x-1/2 w-[92%] max-w-sm z-50">
-        <div className="bg-neutral-900/90 backdrop-blur-xl border border-neutral-800/50 rounded-2xl px-1 py-1.5 shadow-2xl shadow-black/50 flex items-center justify-around">
-          <MobileNavItem to="/" icon={BarChart2} label="Dash" />
-          <MobileNavItem to="/check-in" icon={PlusCircle} label="Log" />
-          <MobileNavItem to="/health" icon={HeartPulse} label="Vitals" />
-          <MobileNavItem to="/habits" icon={CheckSquare} label="Habits" />
-          <MobileNavItem to="/calendar" icon={Calendar} label="Cal" />
-          <MobileNavItem to="/care" icon={Users} label="Care" />
-          <MobileNavItem to="/report" icon={FileBarChart} label="Report" />
-          <Link
-            to="/profile"
-            className={`flex flex-col items-center justify-center space-y-1 px-3 py-1 transition-all relative ${
-              location.pathname === '/profile' ? 'text-indigo-400 font-semibold scale-105' : 'text-gray-500 hover:text-white'
-            }`}
-          >
-            <div className={`w-5 h-5 rounded-full overflow-hidden flex items-center justify-center ${!getPhotoUrl() && !userName ? '' : 'bg-neutral-600'}`}>
-              <ProfileAvatar size={20} />
-            </div>
-            <span className="text-[9px] uppercase tracking-wider font-bold">Me</span>
-            {location.pathname === '/profile' && (
-              <div className="absolute -top-1.5 w-1 h-1 bg-indigo-500 rounded-full shadow-[0_0_8px_rgba(99,102,241,0.8)]" />
-            )}
-          </Link>
+      {/* Mobile Tab Bar */}
+      <div className="md:hidden fixed bottom-0 left-0 w-full z-50
+        bg-white dark:bg-[#141418]
+        border-t border-theme-border dark:border-[#27272a]
+        shadow-[0_-2px_10px_rgba(0,0,0,0.04)]">
+        <div className="flex justify-around items-center h-16 px-2">
+          {links.map((link) => {
+            const isActive = location.pathname === link.to;
+            return (
+              <NavLink key={link.to} to={link.to}
+                className={`flex flex-col items-center justify-center w-full h-full space-y-1 transition text-xs font-medium
+                  ${isActive
+                    ? 'text-[#0d968b] dark:text-blue-400'
+                    : 'text-theme-muted hover:text-theme-text'}`}>
+                {React.cloneElement(link.icon, {
+                  className: isActive ? 'text-[#0d968b] dark:text-blue-400' : 'text-theme-muted'
+                })}
+                <span>{link.label}</span>
+              </NavLink>
+            );
+          })}
+          {/* Theme toggle as last tab */}
+          <ThemeToggle compact />
         </div>
       </div>
 
+      {/* Desktop Sidebar */}
+      <aside className="hidden md:flex flex-col w-64
+        bg-white dark:bg-[#141418]
+        border-r border-[#E2E8F0] dark:border-[#27272a]
+        fixed h-full top-0 left-0 z-40">
+        <div className="flex items-center gap-3 px-8 py-8 mb-4">
+          <Activity size={26} className="text-[#0d968b] dark:text-blue-500" />
+          <span className="font-semibold text-xl tracking-tight text-[#0F172A] dark:text-white">LifeOS</span>
+        </div>
+
+        <nav className="flex-1 px-4 space-y-2">
+          {links.map((link) => {
+            const isActive = location.pathname === link.to;
+            return (
+              <NavLink
+                key={link.to}
+                to={link.to}
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg font-medium text-sm transition-all duration-200
+                  ${isActive
+                    ? 'bg-teal-50 dark:bg-blue-500/10 text-[#0d968b] dark:text-blue-400 border-l-4 border-[#0d968b] dark:border-blue-500'
+                    : 'text-[#64748B] dark:text-slate-400 hover:text-[#0F172A] dark:hover:text-white hover:bg-[#F8FAFC] dark:hover:bg-white/5'}`}
+              >
+                {link.icon} {link.label}
+              </NavLink>
+            );
+          })}
+
+          <div className="pt-8 mb-2 px-4">
+            <span className="text-xs font-semibold text-[#94A3B8] dark:text-slate-600 uppercase tracking-wider">Additional</span>
+          </div>
+          <NavLink to="/habits"
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-4 py-3 rounded-lg font-medium text-sm transition-all duration-200
+              ${isActive
+                ? 'bg-teal-50 dark:bg-blue-500/10 text-[#0d968b] dark:text-blue-400 border-l-4 border-[#0d968b] dark:border-blue-500'
+                : 'text-[#64748B] dark:text-slate-400 hover:text-[#0F172A] dark:hover:text-white hover:bg-[#F8FAFC] dark:hover:bg-white/5'}`}
+          >
+            <PieChart size={20} /> Protocols
+          </NavLink>
+          <NavLink to="/report"
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-4 py-3 rounded-lg font-medium text-sm transition-all duration-200
+              ${isActive
+                ? 'bg-teal-50 dark:bg-blue-500/10 text-[#0d968b] dark:text-blue-400 border-l-4 border-[#0d968b] dark:border-blue-500'
+                : 'text-[#64748B] dark:text-slate-400 hover:text-[#0F172A] dark:hover:text-white hover:bg-[#F8FAFC] dark:hover:bg-white/5'}`}
+          >
+            <ClipboardList size={20} /> Weekly Report
+          </NavLink>
+        </nav>
+
+        <div className="px-4 pb-4 border-t border-[#E2E8F0] dark:border-[#27272a] mt-auto pt-3 space-y-1">
+          {/* Theme toggle pill */}
+          <ThemeToggle />
+          {/* Sign out */}
+          <button
+            onClick={() => { localStorage.removeItem('token'); window.location.href = '/login'; }}
+            className="flex items-center gap-3 px-4 py-3 w-full rounded-lg font-medium text-sm
+              text-[#DC2626] dark:text-red-500
+              hover:bg-red-50 dark:hover:bg-red-500/10 transition">
+            <LogOut size={20} /> Sign Out
+          </button>
+        </div>
+      </aside>
     </>
   );
 };

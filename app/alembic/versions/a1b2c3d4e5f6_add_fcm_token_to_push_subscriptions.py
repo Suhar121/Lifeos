@@ -17,17 +17,22 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # Add fcm_token column
-    op.add_column('push_subscriptions', sa.Column('fcm_token', sa.Text(), nullable=True, unique=True))
-    
-    # Make legacy columns nullable
-    op.alter_column('push_subscriptions', 'endpoint', existing_type=sa.Text(), nullable=True)
-    op.alter_column('push_subscriptions', 'p256dh', existing_type=sa.Text(), nullable=True)
-    op.alter_column('push_subscriptions', 'auth', existing_type=sa.Text(), nullable=True)
+    with op.batch_alter_table('push_subscriptions') as batch_op:
+        # Add fcm_token column (unique index added separately below for SQLite compat)
+        batch_op.add_column(sa.Column('fcm_token', sa.Text(), nullable=True))
+        # Make legacy columns nullable
+        batch_op.alter_column('endpoint', existing_type=sa.Text(), nullable=True)
+        batch_op.alter_column('p256dh', existing_type=sa.Text(), nullable=True)
+        batch_op.alter_column('auth', existing_type=sa.Text(), nullable=True)
+
+    # Create unique index separately (works on all backends including SQLite)
+    op.create_index('uq_push_subscriptions_fcm_token', 'push_subscriptions', ['fcm_token'], unique=True)
 
 
 def downgrade() -> None:
-    op.drop_column('push_subscriptions', 'fcm_token')
-    op.alter_column('push_subscriptions', 'endpoint', existing_type=sa.Text(), nullable=False)
-    op.alter_column('push_subscriptions', 'p256dh', existing_type=sa.Text(), nullable=False)
-    op.alter_column('push_subscriptions', 'auth', existing_type=sa.Text(), nullable=False)
+    op.drop_index('uq_push_subscriptions_fcm_token', table_name='push_subscriptions')
+    with op.batch_alter_table('push_subscriptions') as batch_op:
+        batch_op.drop_column('fcm_token')
+        batch_op.alter_column('endpoint', existing_type=sa.Text(), nullable=False)
+        batch_op.alter_column('p256dh', existing_type=sa.Text(), nullable=False)
+        batch_op.alter_column('auth', existing_type=sa.Text(), nullable=False)
